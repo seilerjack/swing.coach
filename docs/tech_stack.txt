@@ -1,0 +1,23 @@
+
+
+------------------------------------------------------------------------
+                               Tech Stack
+------------------------------------------------------------------------
+
+Frontend
+
+    - Next.js (React) → handles routing, rendering, and file uploads
+
+    - TailwindCSS → for quick and clean UI
+
+Backend
+
+    - Python FastAPI → run pose-estimation + metric extraction
+
+Storage
+
+    - Local ( development )
+
+    - AWS S3 → Video storage
+
+    - PostgreSQL → Database

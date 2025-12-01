@@ -1,0 +1,41 @@
+
+
+------------------------------------------------------------------------
+                      MVP Requirements Document
+------------------------------------------------------------------------
+
+1.0 - R - The software shall provide the user an interface to upload a video.
+    1.1 - R - The interface shall support *.mp4, *.avi, and *.mov file formats.
+
+2.0 - R - The software shall provide the user an interface to input shot metadata.
+    2.1 The software shall support the following metadata fields:
+        2.1.1 - R - Shot Outcome
+        2.1.2 Club Used
+        2.1.3 Optional Context (e.g. weather conditions, turf type)
+
+3.0 - R - The software shall process the uploaded video to extract key data frames.
+    3.1 The software shall identify key frames for the following swing phases:
+        3.1.1 - R - Address
+        3.1.2 - R - Backswing Top
+        3.1.3 - R - Impact
+
+4.0 - R - The software shall apply pose estimation algorithms to analyze posture.
+
+5.0 - R - The software shall utilize pose estimation data to compute swing metrics.
+    5.1 The software shall calculate the following metrics:
+        5.1.1 Shoulder Rotation Range
+        5.1.2 Shoulder Rotation Range Backswing
+        5.1.3 Hip Rotation Range
+        5.1.4 Hip Rotation Range Backswing
+        5.1.5 Spine Tilt Mean
+        5.1.6 Spine Tilt Range
+        5.1.7 Head Movement (X axis)
+        5.1.8 Head Movement (Y axis)
+
+6.0 - R - The software shall generate a prompt for an AI model based on the computed metrics and shot metadata.
+
+7.0 - R - The software shall send the generated prompt to an AI model for analysis.
+
+8.0 - R - The software shall receive feedback from the AI model.
+
+9.0 - R - The software shall present the feedback to the user in a clear and actionable format.
