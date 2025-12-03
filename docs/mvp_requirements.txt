@@ -39,3 +39,45 @@
 8.0 - R - The software shall receive feedback from the AI model.
 
 9.0 - R - The software shall present the feedback to the user in a clear and actionable format.
+
+
+------------------------------------------------------------------------
+                          Basic Data Flow
+------------------------------------------------------------------------
+
+                    ┌───────────────────────────┐
+                    │         Frontend          │
+                    │       (React/Next.js)     │
+                    │ ───────────────────────── │
+                    │ 1. Video Upload UI        │
+                    │ 2. Shot metadata form     │
+                    │ 3. "Analyze Swing" button │
+                    │ 4. Results display        │
+                    └─────────────┬─────────────┘
+                                  │  POST video + metadata
+                                  ▼
+                    ┌───────────────────────────┐
+                    │         Backend           │
+                    │       (FastAPI/Node)      │
+                    │ ───────────────────────── │
+                    │ /api/analyze-swing        │◄────────────┐
+                    │   - Accepts video + form  │             │
+                    │   - Saves video           │             │
+                    │   - Runs preprocessing    │             │
+                    │   - Runs pose estimation  │             │
+                    │   - Runs segmentation     │             │
+                    │   - Extracts metrics      │             │
+                    │   - Builds GPT prompt     │             │
+                    │   - Calls GPT API         │─────────────┘
+                    │   - Returns coaching text │
+                    └─────────────┬─────────────┘
+                                  │ JSON response
+                                  ▼
+                    ┌───────────────────────────┐
+                    │        Frontend           │
+                    │  - Shows feedback text    │
+                    │  - Shows metrics          │
+                    │  - (Optionally) shows     │
+                    │    video preview          │
+                    └───────────────────────────┘
+
