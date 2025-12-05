@@ -38,7 +38,9 @@ from mediapipe.python.solutions import pose          as mp_pose_module
 #   CLASS NAME: PoseEstimation
 #
 #   DESCRIPTION:
-#       [description].
+#       Uses MediaPipe's Pose solution to estimate human poses in video
+#       frames. Outputs structured pose data as a json dictionary and
+#       can optionally generate a video with pose overlay.
 #
 # ---------------------------------------------------------------------
 class PoseEstimation:
@@ -72,9 +74,9 @@ class PoseEstimation:
         # -------------------------------------------------------------
         self.pose_data = self._estimate_poses()
 
-    # -------------------------------------------------------------------------
-    #                          PRIVATE METHODS
-    # -------------------------------------------------------------------------
+    # -----------------------------------------------------------------
+    #                        PRIVATE METHODS
+    # -----------------------------------------------------------------
     
     def _estimate_poses( self ) -> List[ Dict[ str, Any ] ]:
         

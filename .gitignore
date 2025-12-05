@@ -35,3 +35,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Special files
+config.py
