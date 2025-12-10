@@ -207,7 +207,7 @@ class PoseEstimation:
 
 if __name__ == "__main__":
     import json
-    pe = PoseEstimation( vid_in="H:\\GIT\\swing.coach\\swing.coach\\test_swing.mp4", overlay=True )
+    pe = PoseEstimation( vid_in="H:\\GIT\\swing.coach\\test_swing.mp4", overlay=True )
 
     # -------------------------------------------------------------------------
     # Save structured data as JSON for inspection
