@@ -46,7 +46,7 @@ from services.gemini_endpoint import Client
 # ---------------------------------------------------------------------
 class Analyze():
 
-    def __init__( self, video_path: str, camera_angle: CameraAngle, experience_level: ExperienceLevel, metadata: str ) -> None:
+    def __init__( self, video_path: str, camera_angle: str, experience_level: str, metadata: str ) -> None:
 
         # -------------------------------------------------------------
         # Path to the swing video we are analyzing.

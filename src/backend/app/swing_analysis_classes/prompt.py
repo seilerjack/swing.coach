@@ -128,7 +128,7 @@ class CameraAngle( Enum ):
 # ---------------------------------------------------------------------
 class PromptBuilder:
 
-    def __init__( self, camera_angle: CameraAngle, experience_level: ExperienceLevel, metadata: str, metrics: Dict[ str, Any ] ) -> None:
+    def __init__( self, camera_angle: str, experience_level: str, metadata: str, metrics: Dict[ str, Any ] ) -> None:
         
         # -------------------------------------------------------------
         # Initialize the metrics, experience level, and camera angle
@@ -237,32 +237,3 @@ class PromptBuilder:
 # -----------------------------------------------------------------------------
 #                                  EXECUTION 
 # -----------------------------------------------------------------------------
-
-if __name__ == "__main__":
-
-    # -----------------------------------------------------------------
-    # See TODO on line 71 regarding experience level selection.
-    # -----------------------------------------------------------------
-    experience_level = ExperienceLevel.BEGINNER
-
-    # -----------------------------------------------------------------
-    # See TODO on line 93 regarding camera angle selection.
-    # -----------------------------------------------------------------
-    camera_angle = CameraAngle.DOWN_THE_LINE
-    
-    metrics = {
-    "shoulder_rotation_range_deg_backswing": 7.7889700835540845,
-    "shoulder_rotation_range_deg": 244.84498128264568,
-    "hip_rotation_range_deg_backswing": 57.28009256745689,
-    "hip_rotation_range_deg": 190.9742361362528,
-    "spine_tilt_mean_deg": -120.12800759486007,
-    "spine_tilt_range_deg": 7.781265807428738,
-    "head_movement_x": 0.02878972887992859,
-    "head_movement_y": 0.005809903144836426
-    }
-
-    metadata = "Ball started 2 yards left and faded back to center."
-
-    prompt_builder = PromptBuilder( camera_angle, experience_level, metadata, metrics )
-
-    print( prompt_builder.prompt )
