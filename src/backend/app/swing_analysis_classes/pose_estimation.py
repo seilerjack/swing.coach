@@ -204,15 +204,3 @@ class PoseEstimation:
 # -----------------------------------------------------------------------------
 #                                 EXECUTION 
 # -----------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    import json
-    pe = PoseEstimation( vid_in="H:\\GIT\\swing.coach\\test_swing.mp4", overlay=True )
-
-    # -------------------------------------------------------------------------
-    # Save structured data as JSON for inspection
-    # -------------------------------------------------------------------------
-    with open( "pose_landmarks_output.json", "w" ) as f:
-        json.dump( pe.pose_data, f, indent=2 )
-
-    print( "Pose estimation complete. Results saved to pose_landmarks_output.json" )

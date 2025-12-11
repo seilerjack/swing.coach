@@ -4,9 +4,8 @@
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
 
-import config
-
-from   google import genai
+from .      import config
+from google import genai
 
 # -----------------------------------------------------------------------------
 #                                  CONSTANTS

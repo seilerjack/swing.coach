@@ -4,11 +4,10 @@
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
 
-import json
 import numpy        as np
 import numpy.typing as npt
 
-from   typing       import Any, List
+from   typing       import Any, Dict, List
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
@@ -33,14 +32,13 @@ from   typing       import Any, List
 # ---------------------------------------------------------------------
 class Segmentation:
     
-    def __init__( self, pose_data: str ) -> None:
+    def __init__( self, pose_data: List[ Dict[ str, Any ] ] ) -> None:
 
         # -------------------------------------------------------------
-        # Initialize the pose data with the json outputted from
+        # Initialize the pose data with the frame data outputted by
         # pose_estimation.py.
         # -------------------------------------------------------------        
-        with open( pose_data, "r" ) as f:
-            self.pose_data = json.load( f )
+        self.pose_data = pose_data
         
         # -------------------------------------------------------------
         # Initialize the frame indices for key swing segements.

@@ -4,10 +4,9 @@
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
 
-import  json
-import  numpy as np
-import  os
-import  sys
+import numpy as np
+import os
+import sys
 
 # ---------------------------------------------------------------------
 # Add the parent directory to the system path to allow for relative
@@ -16,8 +15,8 @@ import  sys
 PARENT_DIR = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
 sys.path.append( PARENT_DIR )
 
-from    segmentation.segmentation import Segmentation
-from    typing                    import Any, Dict
+from   segmentation import Segmentation
+from   typing       import Any, Dict, List
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
@@ -123,16 +122,16 @@ def spine_tilt_helper( frame: Dict[ str, Any ] ) -> float:
 
 # ---------------------------------------------------------------------
 #
-#   CLASS NAME: Metrics
+#   CLASS NAME: MetricsCalculator
 #
 #   DESCRIPTION:
 #       Handles the calculation and organization of various swing
 #       metrics generated from the extrapolated pose data.
 #
 # ---------------------------------------------------------------------
-class Metrics:
+class MetricsCalculator:
 
-    def __init__( self, pose_data: str ) -> None:
+    def __init__( self, pose_data: List[ Dict[ str, Any ] ] ) -> None:
 
         # -------------------------------------------------------------
         # Create a Segmentation object to identify key frames. This
@@ -144,11 +143,10 @@ class Metrics:
         self.impact_frame    = segments.impact_frame
         
         # -------------------------------------------------------------
-        # Initialize the pose data with the json outputted from
+        # Initialize the pose data with the fram data outputted by
         # pose_estimation.py.
         # -------------------------------------------------------------        
-        with open( pose_data, "r" ) as f:
-            self.pose_data = json.load( f )
+        self.pose_data = pose_data
 
         # -------------------------------------------------------------
         # Initialize the metrics dictionary.
