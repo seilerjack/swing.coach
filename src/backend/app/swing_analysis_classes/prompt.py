@@ -181,8 +181,8 @@ class PromptBuilder:
     def _build_situation( self ) -> str:
         return textwrap.dedent( f"""\
                                 **Situation**
-                                The golfer is at an { self.experience_level.value } experience level.
-                                The swing video was recorded from a { self.camera_angle.value } camera angle.
+                                The golfer is at an { self.experience_level } experience level.
+                                The swing video was recorded from a { self.camera_angle } camera angle.
                                 { DELIMITER }
                                 """ )
 

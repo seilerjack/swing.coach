@@ -18,10 +18,10 @@ sys.path.append( PARENT_DIR )
 # TODO: Add imports for footage preprocessing modules here.
 # ---------------------------------------------------------------------
 
-from pose_estimation          import PoseEstimation
-from metrics                  import MetricsCalculator
-from prompt                   import PromptBuilder, ExperienceLevel, CameraAngle
-from services.gemini_endpoint import Client
+from swing_analysis_classes.pose_estimation import PoseEstimation
+from swing_analysis_classes.metrics         import MetricsCalculator
+from swing_analysis_classes.prompt          import PromptBuilder, ExperienceLevel, CameraAngle
+from services.gemini_endpoint               import Client
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS

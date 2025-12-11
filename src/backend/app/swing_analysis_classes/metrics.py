@@ -15,8 +15,8 @@ import sys
 PARENT_DIR = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
 sys.path.append( PARENT_DIR )
 
-from   segmentation import Segmentation
-from   typing       import Any, Dict, List
+from   swing_analysis_classes.segmentation import Segmentation
+from   typing                              import Any, Dict, List
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS

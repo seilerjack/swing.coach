@@ -16,9 +16,10 @@ import tempfile
 PARENT_DIR = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
 sys.path.append( PARENT_DIR )
 
+from   app.swing_analysis_classes.main import Analyze
 from   fastapi                         import APIRouter, UploadFile, File, Form
 from   pathlib                         import Path
-from   app.swing_analysis_classes.main import Analyze
+from   typing                          import Dict
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
@@ -44,7 +45,7 @@ async def analyze(
     experience_level: str = Form(...),
     camera_angle: str = Form(...),
     metadata: str = Form(...)
-):
+) -> Dict:
     
     # -----------------------------------------------------------------
     # Create a unique temporary directory to store the input file and
