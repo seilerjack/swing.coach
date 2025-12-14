@@ -9,12 +9,20 @@ from fastapi import APIRouter
 #                                 CONSTANTS
 # -----------------------------------------------------------------------------
 
-router = APIRouter(prefix="/health", tags=["health"])
+router = APIRouter( prefix="/health", tags=[ "health" ] )
 
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
 # -----------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+#
+#   EDNPOINT NAME: health_check
+#
+#   DESCRIPTION:
+#       Performs a health status check on the API's backend connection.
+#
+# ---------------------------------------------------------------------
 @router.get("/")
 def health_check():
     return {"status": "ok"}

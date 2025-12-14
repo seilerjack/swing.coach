@@ -7,6 +7,7 @@
 import cv2
 import os
 import sys
+import uuid
 
 # ---------------------------------------------------------------------
 # Add the parent directory to the system path to allow for relative
@@ -52,7 +53,7 @@ class PoseEstimation:
         # and constant values.
         # -------------------------------------------------------------
         self.input_vid_path  = vid_in
-        self.output_vid_path = os.path.join( SHARED_DIR, "pose_overlay.mp4" )
+        self.output_vid_path = os.path.join( SHARED_DIR, f"pose_overlay_{ uuid.uuid4().hex }.mp4" )
         self.overlay         = overlay
 
         # -------------------------------------------------------------

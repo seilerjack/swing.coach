@@ -75,12 +75,18 @@ async def analyze(
         )
 
         # -------------------------------------------------------------
+        # Grab the filename from the returned video overlay so it can
+        # be resolved in the static folder shared directory.
+        # -------------------------------------------------------------
+        pose_overlay_path = Path( output.video_overlay_path ).name if output.video_overlay_path else None
+
+        # -------------------------------------------------------------
         # Return the JSON response including the full swing analysis
         # and a path to the pose overlayed swing video.
         # -------------------------------------------------------------
         return {
             "swing_analysis": output.analysis,
-            "pose_overlay": f"/shared/{ output.video_overlay_path }"
+            "pose_overlay": f"/shared/{ pose_overlay_path }"
         }
 
 

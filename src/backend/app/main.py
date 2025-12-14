@@ -1,5 +1,11 @@
 
 
+#
+# HAVE TO BE IN VIRTUAL ENVIRONMENT TO LAUNCH SERVER.
+#
+# backend/app> uvicorn main:app --reload
+#
+
 # -----------------------------------------------------------------------------
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
@@ -26,8 +32,15 @@ from routes.health           import router as health_router
 #                                 CONSTANTS
 # -----------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+# Initialize our FastAPI app
+# ---------------------------------------------------------------------
 app = FastAPI()
 
+# ---------------------------------------------------------------------
+# Resolve a relative path to the shared directory so it can be reached
+# regardless of where the server is launched from.
+# ---------------------------------------------------------------------
 BASE_DIR   = Path( __file__ ).resolve().parent.parent.parent
 SHARED_DIR = BASE_DIR / "shared"
 
@@ -43,7 +56,9 @@ SHARED_DIR = BASE_DIR / "shared"
 #                                 EXECUTION 
 # -----------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
 # CORS for frontend
+# ---------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[ "*" ],
@@ -51,15 +66,17 @@ app.add_middleware(
     allow_headers=[ "*" ],
 )
 
+# ---------------------------------------------------------------------
 # Static directory (processed videos)
+# ---------------------------------------------------------------------
 app.mount(
     path="/shared",
     app=StaticFiles( directory=SHARED_DIR ),
     name="shared"
 )
 
+# ---------------------------------------------------------------------
 # Routers
-# app.include_router( router=analyze_router, prefix="/routes")
-# app.include_router( router=health_router, prefix="/routes")
+# ---------------------------------------------------------------------
 app.include_router( router=analyze_router )
 app.include_router( router=health_router )
