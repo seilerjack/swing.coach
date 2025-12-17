@@ -104,11 +104,15 @@ class PoseEstimation:
         # -------------------------------------------------------------
         # Initialize overlay video writer if debug visualization is
         # enabled.
+        #
+        # NOTE: We must force the MSMY API for H264 encoding. This
+        # allows for embedded browser streaming.
         # -------------------------------------------------------------
         if self.overlay and self.output_vid_path:
-            fourcc = cv2.VideoWriter.fourcc( *"mp4v" )
+            fourcc = cv2.VideoWriter.fourcc( *"H264" )
             writer = cv2.VideoWriter(
                 filename=self.output_vid_path,
+                apiPreference=cv2.CAP_MSMF,
                 fourcc=fourcc,
                 fps=fps,
                 frameSize=( width, height )
