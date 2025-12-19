@@ -1,0 +1,51 @@
+
+
+------------------------------------------------------------------------
+                       Frontend Page Elements
+------------------------------------------------------------------------
+
+                ┌──────────────────────────────┐
+                │  Swing Coach (title)         │
+                │──────────────────────────────│
+                │  Video Upload                │
+                │  [ file input ]              │
+                │                              │
+                │  Experience Level            │
+                │  [ select ]                  │
+                │                              │
+                │  Camera Angle                │
+                │  [ select ]                  │
+                │                              │
+                │  Shot Metadata               │
+                │  [ textarea ]                │
+                │                              │
+                │  [ Analyze Swing ]           │
+                │──────────────────────────────│
+                │  Results                     │
+                │                              │
+                │  Swing Analysis (text)       │
+                │                              │
+                │  Video Player                │
+                │  [ video ]                   │
+                └──────────────────────────────┘
+
+------------------------------------------------------------------------
+                        Frontend Data Flow
+------------------------------------------------------------------------
+
+                    User clicks Analyze
+                             ↓
+                  Frontend builds FormData
+                             ↓
+                    POST /analysis
+                             ↓
+                        Response:
+                            {
+                            swing_analysis: "...",
+                            pose_overlay: "/shared/pose_overlay_xxx.mp4"
+                            }
+                             ↓
+                     Frontend renders:
+                        - text
+                        - <video src={BACKEND_URL + pose_overlay}>
+

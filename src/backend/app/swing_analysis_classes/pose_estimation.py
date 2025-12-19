@@ -100,6 +100,16 @@ class PoseEstimation:
         width  = int( cap.get( cv2.CAP_PROP_FRAME_WIDTH ) )
         height = int( cap.get( cv2.CAP_PROP_FRAME_HEIGHT ) )
         fps    = cap.get( propId=cv2.CAP_PROP_FPS )
+        
+        # -------------------------------------------------------------
+        # TODO (video-preprocessing):
+        # Phone videos often store portrait footage as rotated landscape
+        # buffers.
+        # 
+        # OpenCV ignores rotation metadata.
+        # -------------------------------------------------------------
+        rotate = True
+        out_width, out_height = ( height, width ) if rotate else ( width, height )
 
         # -------------------------------------------------------------
         # Initialize overlay video writer if debug visualization is
@@ -115,7 +125,7 @@ class PoseEstimation:
                 apiPreference=cv2.CAP_MSMF,
                 fourcc=fourcc,
                 fps=fps,
-                frameSize=( width, height )
+                frameSize=( out_width, out_height )
             )
         else: writer = None
 
@@ -178,15 +188,26 @@ class PoseEstimation:
             if self.overlay and writer:
                 overlaid = frame.copy()
 
-                # ---------------------------------------------------------
+                # -----------------------------------------------------
                 # Draw the landmarks on the new 'overlaid' frame.
-                # ---------------------------------------------------------
+                # -----------------------------------------------------
                 if frame_corrected.pose_landmarks:
                     self.mp_drawing.draw_landmarks(
                         image=overlaid,
                         landmark_list=frame_corrected.pose_landmarks,
                         connections=list( self.mp_pose.POSE_CONNECTIONS )
                     )
+                
+                # -----------------------------------------------------
+                # TODO: Calculate whether the frames orientation needs
+                # to be adjusted before writing.
+                # -----------------------------------------------------
+                if rotate:
+                    overlaid = cv2.rotate( overlaid, cv2.ROTATE_90_CLOCKWISE )
+                
+                # -----------------------------------------------------
+                # Write the adjusted, overlayed frames to output.
+                # -----------------------------------------------------
                 writer.write( overlaid )
 
         # -------------------------------------------------------------
