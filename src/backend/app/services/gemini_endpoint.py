@@ -4,8 +4,10 @@
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
 
-from .      import config
-from google import genai
+from .            import config
+from google       import genai
+from google.genai import types
+from pydantic     import BaseModel
 
 # -----------------------------------------------------------------------------
 #                                  CONSTANTS
@@ -14,6 +16,21 @@ from google import genai
 # -----------------------------------------------------------------------------
 #                                   CLASSES
 # -----------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------
+#
+#   CLASS NAME: ResponseSchema
+#
+#   DESCRIPTION:
+#       Pydantic base model for structuring the Gemini API responses.
+#
+# ---------------------------------------------------------------------
+class ResponseSchema( BaseModel ):
+    swingAnalysis: str
+    keyObservations: list[str]
+    coachingTips: list[str]
+    letterGrade: str
 
 
 # ---------------------------------------------------------------------
@@ -54,7 +71,15 @@ class Client():
         # -------------------------------------------------------------
         # Return Gemini's response to the provided prompt.
         # -------------------------------------------------------------
-        return self.gemini_client.models.generate_content( model=model, contents=prompt).text 
+        response = self.gemini_client.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type='application/json',
+                response_schema=ResponseSchema ) )
+    
+        return response.parsed
+
 
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES

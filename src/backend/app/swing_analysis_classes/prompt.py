@@ -23,7 +23,7 @@ DELIMITER = \
 # -----------------------------------------------------------------------------
 CONTEXT = \
     textwrap.dedent( f"""\
-                     **Context**
+                     Context
                      You are an experienced golf coach with additional background in biomechanics.
 
                      You use your expertise and knowledge of human movement to provide insightful, actionable feedback to golfers aiming to improve their swing technique.
@@ -37,40 +37,15 @@ CONTEXT = \
 # -----------------------------------------------------------------------------
 TASKS = \
     textwrap.dedent( f"""\
-                     **Task**
+                     Task
                      1. Interpret what these values suggest about the golfer's swing mechanics.
                      2. Identify potential issues or inefficiencies.
                      3. Offer 2-3 specific, actionable coaching tips for improvement.
                          - If the swing metrics and outcome indicate a successful shot, it is acceptable if fewer than 3 issues are noted.  
                      4. Keep the tone supportive, concise, and practical.
                      5. Tailor your language and depth of explanation to the golfer's experience level: beginner, intermediate, or advanced.
-                     { DELIMITER }
                      6. Give a letter grade (A+ -> F) for the swing based on the metrics and overall analysis.
-                     """ )
-
-# -----------------------------------------------------------------------------
-# Defines the exact structure the LLM should return. This strongly improves
-# determinism and consistency in model-generated analysis.
-# -----------------------------------------------------------------------------
-EXPECTED_OUTPUT = \
-    textwrap.dedent( """\
-                     Return your feedback in this format:
-
-                     { 
-                        "swingAnalysis" : (summary paragraph),
-                        "keyObservations" : [
-                            (bullet 1),
-                            (bullet 2),
-                            ...
-                            ],
-                        "coachingTips" : [
-                            (tip 1),
-                            (tip 2),
-                            ...
-                            ],
-                        "LetterGrade" : (letter grade)
-                    }
-
+                     { DELIMITER }
                      """ )
 
 # -----------------------------------------------------------------------------
@@ -168,7 +143,6 @@ class PromptBuilder:
 { self._build_metadata() }
 { self._build_metrics() }
 { TASKS }
-{ EXPECTED_OUTPUT }
 """ )
 
 
@@ -184,7 +158,7 @@ class PromptBuilder:
     # -----------------------------------------------------------------
     def _build_situation( self ) -> str:
         return textwrap.dedent( f"""\
-                                **Situation**
+                                Situation
                                 The golfer is at an { self.experience_level } experience level.
                                 The swing video was recorded from a { self.camera_angle } camera angle.
                                 { DELIMITER }
@@ -204,7 +178,7 @@ class PromptBuilder:
     # -----------------------------------------------------------------
     def _build_metadata( self ) -> str:
         return textwrap.dedent( f"""\
-                                **Metadata**
+                                Metadata
                                 { self.metadata }
                                 { DELIMITER }
                                 """ )
@@ -221,7 +195,7 @@ class PromptBuilder:
     # -----------------------------------------------------------------
     def _build_metrics( self ) -> str:
         return textwrap.dedent( f"""\
-                                **Pose Metrics**
+                                Pose Metrics
                                 - Shoulder rotation backswing : { self.metrics[ "shoulder_rotation_range_deg_backswing" ]:.2f}°
                                 - Shoulder rotation range     : { self.metrics[ "shoulder_rotation_range_deg" ]:.2f}°
                                 - Hip rotation backswing      : { self.metrics[ "hip_rotation_range_deg_backswing" ]:.2f}°
