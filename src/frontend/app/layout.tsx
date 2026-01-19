@@ -1,5 +1,6 @@
 import "./globals.css";
 import Header from "@/app/components/Header";
+import Footer from "@/app/components/Footer";
 
 export default function RootLayout({
   children,
@@ -8,9 +9,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-white text-gray-900">
+      <body className="min-h-screen flex flex-col bg-white text-gray-900">
         <Header />
-        {children}
+        
+        {/* Main content grows to fill space */}
+        <main className="flex-1">
+          {children}
+        </main>
+
+        <Footer />
       </body>
     </html>
   );

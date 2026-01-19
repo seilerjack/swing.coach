@@ -3,7 +3,6 @@ import Hero from "./components/Hero";
 import Features from "./components/Features";
 import HowItWorks from "./components/HowItWorks";
 import CallToAction from "./components/CallToAction";
-import Footer from "./components/Footer";
 
 export default function HomePage() {
   return (
@@ -27,11 +26,6 @@ export default function HomePage() {
       {/* CTA */}
       {/* ===================== */}
       <CallToAction />
-
-      {/* ===================== */}
-      {/* Footer */}
-      {/* ===================== */}
-      <Footer />
     </main>
   );
 }
