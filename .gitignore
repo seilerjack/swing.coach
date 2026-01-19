@@ -62,6 +62,7 @@ config.py
 # misc
 .DS_Store
 *.pem
+docs/inspo
 
 # debug
 npm-debug.log*

@@ -45,6 +45,7 @@ TASKS = \
                      4. Keep the tone supportive, concise, and practical.
                      5. Tailor your language and depth of explanation to the golfer's experience level: beginner, intermediate, or advanced.
                      { DELIMITER }
+                     6. Give a letter grade (A+ -> F) for the swing based on the metrics and overall analysis.
                      """ )
 
 # -----------------------------------------------------------------------------
@@ -55,18 +56,21 @@ EXPECTED_OUTPUT = \
     textwrap.dedent( """\
                      Return your feedback in this format:
 
-                     **Swing Analysis**
-                     (summary paragraph)
+                     { 
+                        "swingAnalysis" : (summary paragraph),
+                        "keyObservations" : [
+                            (bullet 1),
+                            (bullet 2),
+                            ...
+                            ],
+                        "coachingTips" : [
+                            (tip 1),
+                            (tip 2),
+                            ...
+                            ],
+                        "LetterGrade" : (letter grade)
+                    }
 
-                     **Key Observations**
-                     - (bullet 1)
-                     - (bullet 2)
-                     - ...
-
-                     **Coaching Tips**
-                     - (tip 1)
-                     - (tip 2)
-                     - ...
                      """ )
 
 # -----------------------------------------------------------------------------
