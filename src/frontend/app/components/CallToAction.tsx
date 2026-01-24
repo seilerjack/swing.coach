@@ -22,18 +22,18 @@ export default function CallToAction() {
             >
               Upload Swing Video →
             </a>
-            <button className="
+            {/* <button className="
               rounded-lg border border-white px-6 py-3
               transition-all duration-200
               hover:scale-105 active:scale-95
               ">
               Learn More
-            </button>
+            </button> */}
           </div>
 
-          <p className="mt-6 text-sm text-gray-400">
+          {/* <p className="mt-6 text-sm text-gray-400">
             No credit card required · Free trial available
-          </p>
+          </p> */}
         </div>
       </section>
   );

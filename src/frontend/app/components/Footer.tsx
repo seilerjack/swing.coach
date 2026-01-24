@@ -17,7 +17,6 @@ export default function Footer() {
               <li><a href="#features">Features</a></li>
               <li><a href="/analyze">Analyze</a></li>
               <li><a href="#how-it-works">How to Use</a></li>
-              <li>Pricing</li>
             </ul>
           </div>
 

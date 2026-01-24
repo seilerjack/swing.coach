@@ -17,6 +17,20 @@ from pydantic     import BaseModel
 #                                   CLASSES
 # -----------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+#
+#   CLASS NAME: ResponseSchemaScore
+#
+#   DESCRIPTION:
+#       Pydantic base model for structuring the Gemini API responses
+#       for specific swing category scores.
+#
+# ---------------------------------------------------------------------
+class ResponseSchemaScore( BaseModel ):
+    name: str                # "Posture & Setup"
+    score: int               # 0–100
+    summary: str             # One-sentence explanation
+
 
 # ---------------------------------------------------------------------
 #
@@ -28,9 +42,10 @@ from pydantic     import BaseModel
 # ---------------------------------------------------------------------
 class ResponseSchema( BaseModel ):
     swingAnalysis: str
-    keyObservations: list[str]
-    coachingTips: list[str]
-    letterGrade: str
+    categoryScores: list[ ResponseSchemaScore ]
+    overallScore: int
+    keyObservations: list[ str ]
+    coachingTips: list[ str ]
 
 
 # ---------------------------------------------------------------------

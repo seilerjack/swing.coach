@@ -16,6 +16,12 @@ export default function AnalysisForm({ onSubmit }: Props) {
   const [shotNotes, setShotNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const EXPERIENCE_HELP = {
+    Beginner: "18+ handicap",
+    Moderate: "18-10 handicap",
+    Advanced: "<10 handicap",
+  };
+
   /* ===================== */
   /*   Form Validation     */
   /* ===================== */
@@ -63,7 +69,41 @@ export default function AnalysisForm({ onSubmit }: Props) {
         >
           {/* Experience Level */}
           <div className="mb-6">
-            <p className="mb-3 font-medium text-gray-800">Experience Level</p>
+            <div className="mb-3 flex items-center gap-2">
+              <p className="font-medium text-gray-800">
+                Experience Level
+              </p>
+
+              <div className="group relative">
+                <span
+                  tabIndex={0}
+                  className="
+                    flex h-4 w-4 items-center justify-center
+                    rounded-full border border-gray-400
+                    text-[10px] font-bold text-gray-500
+                    cursor-help
+                  "
+                >
+                  i
+                </span>
+
+                {/* Tooltip */}
+                <div
+                  className="
+                    pointer-events-none absolute left-0 top-full z-10
+                    mt-2 w-56 rounded-lg bg-gray-900 px-3 py-2
+                    text-xs text-white opacity-0
+                    transition-opacity duration-200
+                    group-hover:opacity-100
+                    group-focus-within:opacity-100
+                  "
+                >
+                  <p><strong>Beginner:</strong> 18+ handicap</p>
+                  <p className="mt-1"><strong>Moderate:</strong> 18-10 handicap</p>
+                  <p className="mt-1"><strong>Advanced:</strong> &lt;10 handicap</p>
+                </div>
+              </div>
+            </div>
             <div className="flex gap-3">
               {["Beginner", "Moderate", "Advanced"].map((level) => (
                 <button
@@ -113,9 +153,43 @@ export default function AnalysisForm({ onSubmit }: Props) {
 
           {/* Shot Notes */}
           <div className="mb-6">
-            <label className="mb-2 block font-medium text-gray-800">
-              Shot Description (optional)
-            </label>
+            <div className="mb-2 flex items-center gap-2">
+              <label className="font-medium text-gray-800">
+                Shot Description (optional)
+              </label>
+
+              <div className="group relative">
+                <span
+                  tabIndex={0}
+                  className="
+                    flex h-4 w-4 items-center justify-center
+                    rounded-full border border-gray-400
+                    text-[10px] font-bold text-gray-500
+                    cursor-help
+                  "
+                >
+                  i
+                </span>
+
+                {/* Tooltip */}
+                <div
+                  className="
+                    pointer-events-none absolute left-0 top-full z-10
+                    mt-2 w-64 rounded-lg bg-gray-900 px-3 py-2
+                    text-xs text-white opacity-0
+                    transition-opacity duration-200
+                    group-hover:opacity-100
+                    group-focus-within:opacity-100
+                  "
+                >
+                  {/* You fill this in */}
+                  <p>
+                    Best results come when providing the AI context about your shots results. i.e. "missed left", "felt off balance", "hit a draw".
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <textarea
               value={shotNotes}
               disabled={isLoading}
@@ -191,10 +265,6 @@ export default function AnalysisForm({ onSubmit }: Props) {
             </p>
           )}
 
-          {/* Tip */}
-          <p className="mt-4 text-center text-xs text-gray-500">
-            Pro tip: Ensure your full swing is visible in the frame
-          </p>
         </form>
       </div>
     </section>

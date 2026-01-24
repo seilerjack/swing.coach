@@ -29,6 +29,8 @@ CONTEXT = \
                      You use your expertise and knowledge of human movement to provide insightful, actionable feedback to golfers aiming to improve their swing technique.
 
                      Analyze the following golf swing metrics and provide feedback on the player's movement and technique.
+                    
+                     Use a supportive tone and concise language, focusing on practical advice that the golfer can implement to enhance their performance.
                      { DELIMITER }
                      """ )
 
@@ -38,61 +40,25 @@ CONTEXT = \
 TASKS = \
     textwrap.dedent( f"""\
                      Task
+                     IMPORTANT - Tailor your language and depth of explanation to the golfer's experience level: beginner, intermediate, or advanced.
                      1. Interpret what these values suggest about the golfer's swing mechanics.
-                     2. Identify potential issues or inefficiencies.
+                     2. Evaluate the gof swing using the following categories:
+                        - Posture and Setup
+                        - Backswing
+                        - Downswing
+                        - Impact Position
+                        - Follow-Through
+                        Assign each category a score from 0 - 100 and provide a one-sentence explanation.
+                        Then compute an overall score from 0-100 reflecting the swing as a whole.
                      3. Offer 2-3 specific, actionable coaching tips for improvement.
-                         - If the swing metrics and outcome indicate a successful shot, it is acceptable if fewer than 3 issues are noted.  
-                     4. Keep the tone supportive, concise, and practical.
-                     5. Tailor your language and depth of explanation to the golfer's experience level: beginner, intermediate, or advanced.
-                     6. Give a letter grade (A+ -> F) for the swing based on the metrics and overall analysis.
+                         - If the swing metrics and outcome indicate a successful shot, it is acceptable if fewer than 3 issues are noted.
+                         - These coaching tips should be no more than one sentence each.
                      { DELIMITER }
                      """ )
 
 # -----------------------------------------------------------------------------
 #                                   CLASSES
 # -----------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------
-#
-#   CLASS NAME: ExperienceLevel
-#
-#   DESCRIPTION:
-#       This value is injected into the Task portion of the prompt so
-#       the LLM tailors tone, depth, and terminology to the golfer's
-#       skill level.
-#
-# ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
-# TODO: Add frontend ability to allow user to select their own
-# experience level from a list of these options. This should then be
-# passed to the backend and fed into the PromptBuilder. For now the
-# value is hardcoded.
-# --------------------------------------------------------------------- 
-class ExperienceLevel( Enum ):
-    BEGINNER     = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED     = "advanced"
-
-
-# ---------------------------------------------------------------------
-#
-#   CLASS NAME: CameraAngle
-#
-#   DESCRIPTION:
-#       This value is injected into the Metadata portion of the prompt
-#       so the LLM can garner additional context about the pose data.
-#
-# ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
-# TODO: Add frontend ability to allow user to select their own camera
-# angle from a list of these options. This should then be passed to the
-# backend and fed into the PromptBuilder. For now the value is
-# hardcoded.
-# --------------------------------------------------------------------- 
-class CameraAngle( Enum ):
-    DOWN_THE_LINE = "down the line"
-    FACE_ON       = "face on"
-
 
 # ---------------------------------------------------------------------
 #

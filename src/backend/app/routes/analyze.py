@@ -19,7 +19,7 @@ sys.path.append( PARENT_DIR )
 from   app.swing_analysis_classes.main import Analyze
 from   fastapi                         import APIRouter, UploadFile, File, Form
 from   pathlib                         import Path
-from   typing                          import Dict
+from   typing                          import Dict, Optional
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
@@ -44,7 +44,7 @@ async def analyze(
     video: UploadFile = File(...),
     experience_level: str = Form(...),
     camera_angle: str = Form(...),
-    metadata: str = Form(...)
+    metadata: Optional[ str ] = Form( None )
 ) -> Dict:
     
     # -----------------------------------------------------------------

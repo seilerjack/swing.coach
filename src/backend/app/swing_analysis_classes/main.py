@@ -20,7 +20,7 @@ sys.path.append( PARENT_DIR )
 
 from swing_analysis_classes.pose_estimation import PoseEstimation
 from swing_analysis_classes.metrics         import MetricsCalculator
-from swing_analysis_classes.prompt          import PromptBuilder, ExperienceLevel, CameraAngle
+from swing_analysis_classes.prompt          import PromptBuilder
 from services.gemini_endpoint               import Client
 
 # -----------------------------------------------------------------------------
