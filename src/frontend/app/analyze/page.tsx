@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, Lightbulb, Video } from "lucide-react";
+import { TrendingUp, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import AnalysisForm from "./AnalysisForm";
 import AnalysisLoading from "./AnalysisLoading";
@@ -74,7 +74,7 @@ export default function AnalyzePage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
+    <main className="relative mx-auto max-w-6xl px-6 py-12">
       {!result && !isLoading && <AnalysisForm onSubmit={handleAnalyze} />}
       {isLoading && <AnalysisLoading />}
       {result && <ResultsSection result={result} onReset={handleReset} />}
@@ -86,13 +86,7 @@ export default function AnalyzePage() {
 /*     Results UI        */
 /* ===================== */
 
-function ResultsSection({
-  result,
-  onReset,
-}: {
-  result: AnalysisResponse;
-  onReset: () => void;
-}) {
+function ResultsSection({ result, onReset }: { result: AnalysisResponse; onReset: () => void }) {
   const { swing_analysis, pose_overlay } = result;
 
   const sortedCategories = [...swing_analysis.categoryScores].sort(
@@ -108,8 +102,6 @@ function ResultsSection({
       {/*      LEFT COLUMN      */}
       {/* ===================== */}
       <div className="space-y-6">
-
-        {/* VIDEO */}
         <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200/60">
           <video
             src={`http://localhost:8000${pose_overlay}`}
@@ -122,22 +114,14 @@ function ResultsSection({
           />
         </div>
 
-        {/* KEY POINTS (COLLAPSIBLE, OBVIOUS) */}
         <details className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60">
-          <summary className="flex cursor-pointer list-none items-center justify-between font-semibold text-gray-900">
+          <summary className="flex cursor-pointer list-none items-center justify-between font-semibold">
             <span>Key Points Analysis</span>
-
-            <span className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="group-open:hidden">Expand</span>
-              <span className="hidden group-open:inline">Collapse</span>
-              <svg
-                className="h-4 w-4 transition-transform duration-200 group-open:rotate-180"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+            <span className="text-sm text-gray-500 group-open:hidden">
+              Expand
+            </span>
+            <span className="hidden text-sm text-gray-500 group-open:inline">
+              Collapse
             </span>
           </summary>
 
@@ -175,8 +159,6 @@ function ResultsSection({
       {/*     RIGHT COLUMN     */}
       {/* ===================== */}
       <div className="space-y-10">
-
-        {/* OVERALL SCORE */}
         <div className="rounded-2xl bg-green-50 p-8 text-center">
           <p className="text-sm font-semibold uppercase tracking-wide text-green-700">
             Overall Score
@@ -189,22 +171,10 @@ function ResultsSection({
           </p>
         </div>
 
-        {/* TECHNICAL ANALYSIS */}
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">
-                Technical Analysis
-              </h3>
-            </div>
-
-            <button
-              onClick={onReset}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:border-gray-900 hover:text-gray-900"
-            >
-              Analyze Another Swing
-            </button>
+          <div className="mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold">Technical Analysis</h3>
           </div>
 
           <p className="text-sm leading-relaxed text-gray-700">
@@ -212,7 +182,6 @@ function ResultsSection({
           </p>
         </div>
 
-        {/* TOP PRIORITY FIX */}
         <div className="rounded-2xl border-l-4 border-orange-500 bg-orange-50 p-6">
           <h4 className="mb-1 text-sm font-semibold uppercase tracking-wide text-orange-700">
             Top Priority Fix
@@ -228,26 +197,10 @@ function ResultsSection({
           </p>
         </div>
 
-        {/* COACHING TIPS (COLLAPSIBLE, OBVIOUS) */}
         <details className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60">
-          <summary className="flex cursor-pointer list-none items-center justify-between font-semibold">
-            <span className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-yellow-600" />
-              Coaching Tips
-            </span>
-
-            <span className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="group-open:hidden">Show tips</span>
-              <span className="hidden group-open:inline">Hide tips</span>
-              <svg
-                className="h-4 w-4 transition-transform duration-200 group-open:rotate-180"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </span>
+          <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold">
+            <Lightbulb className="h-5 w-5 text-yellow-600" />
+            Coaching Tips
           </summary>
 
           <ul className="mt-4 space-y-3 text-sm">
@@ -261,7 +214,24 @@ function ResultsSection({
             ))}
           </ul>
         </details>
+
+        <div className="pointer-events-none sticky bottom-6 flex justify-end">
+          <button
+            onClick={onReset}
+            className="
+            pointer-events-auto
+            rounded-full bg-gray-900 px-5 py-3
+              text-sm font-semibold text-white
+              shadow-lg transition
+              hover:bg-gray-800 hover:scale-105
+              active:scale-95
+              "
+              >
+            Analyze another swing
+          </button>
+        </div>
       </div>
+
     </section>
   );
 }
