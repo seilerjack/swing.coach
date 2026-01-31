@@ -96,6 +96,8 @@ async def analyze(
 
         # -------------------------------------------------------------
         # Create paths for the temporary versions of the input files.
+        # This is so we can maintain a reference to the files on disk
+        # while the analysis classes operate on them.
         # -------------------------------------------------------------
         face_on_path       = tmp_dir_path / "face_on.mp4"
         down_the_line_path = tmp_dir_path / "down_the_line.mp4"
@@ -116,6 +118,7 @@ async def analyze(
         output = Analyze(
             face_on_path=str( face_on_path ),
             down_the_line_path=str( down_the_line_path ),
+            temp_dir_path=str( tmp_dir_path ),
             experience_level=swing.experience_level
         )
 
@@ -150,7 +153,9 @@ async def analyze(
 #
 # ---------------------------------------------------------------------
 @router.get("/{analysis_id}/overlay")
-async def get_overlays( analysis_id: str ) -> StreamingResponse:
+async def get_overlays( 
+    analysis_id: str 
+) -> StreamingResponse:
 
     # -----------------------------------------------------------------
     # Retrieve the analysis ID from the cache. If id doesn't exist

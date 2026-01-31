@@ -73,7 +73,7 @@ TASKS = \
 # ---------------------------------------------------------------------
 class PromptBuilder:
 
-    def __init__( self, camera_angle: str, experience_level: str, metadata: str, metrics: Dict[ str, Any ] ) -> None:
+    def __init__( self, experience_level: str, metrics: Dict[ str, Any ] ) -> None:
         
         # -------------------------------------------------------------
         # Initialize the metrics, experience level, and camera angle
@@ -81,8 +81,6 @@ class PromptBuilder:
         # -------------------------------------------------------------
         self.metrics          = metrics
         self.experience_level = experience_level
-        self.camera_angle     = camera_angle
-        self.metadata         = metadata
 
         # -------------------------------------------------------------
         # Build and store the prompt.
@@ -106,7 +104,6 @@ class PromptBuilder:
         return textwrap.dedent( f"""
 { CONTEXT }
 { self._build_situation() }
-{ self._build_metadata() }
 { self._build_metrics() }
 { TASKS }
 """ )
@@ -126,26 +123,6 @@ class PromptBuilder:
         return textwrap.dedent( f"""\
                                 Situation
                                 The golfer is at an { self.experience_level } experience level.
-                                The swing video was recorded from a { self.camera_angle } camera angle.
-                                { DELIMITER }
-                                """ )
-
-
-    # -----------------------------------------------------------------
-    #
-    #   METHOD NAME: _build_metadata
-    #
-    #   DESCRIPTION:
-    #       The metadata portion of the prompt should contain
-    #       information relating to the outcome of the swing video
-    #       uploaded. Things like "ball start right and faded 10 yards"
-    #       would be most apporpriate here.
-    #
-    # -----------------------------------------------------------------
-    def _build_metadata( self ) -> str:
-        return textwrap.dedent( f"""\
-                                Metadata
-                                { self.metadata }
                                 { DELIMITER }
                                 """ )
 

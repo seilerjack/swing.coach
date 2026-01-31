@@ -4,10 +4,12 @@
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
 
+from zipfile import Path
 import cv2
 import os
 import sys
 import uuid
+import tempfile
 
 # ---------------------------------------------------------------------
 # Add the parent directory to the system path to allow for relative
@@ -17,6 +19,7 @@ PARENT_DIR = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
 sys.path.append( PARENT_DIR )
 
 from lib                        import SHARED_DIR
+from pathlib                    import Path
 from typing                     import Any, Dict, List, Optional  
 from mediapipe.python.solutions import drawing_utils as mp_drawing_utils
 from mediapipe.python.solutions import pose          as mp_pose_module
@@ -46,16 +49,13 @@ from mediapipe.python.solutions import pose          as mp_pose_module
 # ---------------------------------------------------------------------
 class PoseEstimation:
     
-    def __init__( self, vid_in: str, overlay: Optional[ bool ] = False ) -> None:
+    def __init__( 
+            self, 
+            face_on_path: str, 
+            down_the_line_path: str,
+            temp_dir_path: str
+            ) -> None:
         
-        # -------------------------------------------------------------
-        # Initialize the input and output video paths with the provided
-        # and constant values.
-        # -------------------------------------------------------------
-        self.input_vid_path  = vid_in
-        self.output_vid_path = os.path.join( SHARED_DIR, f"pose_overlay_{ uuid.uuid4().hex }.mp4" )
-        self.overlay         = overlay
-
         # -------------------------------------------------------------
         # Initialize the mediapipe related resources.
         # -------------------------------------------------------------
@@ -71,15 +71,70 @@ class PoseEstimation:
         )
 
         # -------------------------------------------------------------
-        # Calculate pose data and overlay esitmations, if specified.
+        # INPUTS
         # -------------------------------------------------------------
-        self.pose_data = self._estimate_poses()
+        # Path to the swing video we are analyzing. Include situational
+        # context and swing metadata.
+        # -------------------------------------------------------------
+        self.face_on_video_path       = face_on_path
+        self.down_the_line_video_path = down_the_line_path
+        
+        # -------------------------------------------------------------
+        # OUTPUT
+        # -------------------------------------------------------------
+        # Initialize structures to hold the pose data and overlay
+        # paths for each video.
+        # -------------------------------------------------------------
+        self.face_on_pose_data: List[ Dict[ str, Any ] ]       = []
+        self.down_the_line_pose_data: List[ Dict[ str, Any ] ] = []
 
+        self.face_on_overlay_path       = None
+        self.down_the_line_overlay_path = None
+
+        # -------------------------------------------------------------
+        # Apply the pose estimation model and generate the overlays.
+        # -------------------------------------------------------------
+        for video in [
+            self.face_on_video_path,
+            self.down_the_line_video_path
+        ] :
+            # ---------------------------------------------------------
+            # Generate a unique temporary path for the output video
+            # overlay.
+            # ---------------------------------------------------------
+            output_vid_path = os.path.join(
+                temp_dir_path,
+                f"{ uuid.uuid4().hex }_overlay.mp4"
+            )
+
+            # ---------------------------------------------------------
+            # Estimate poses and generate overlay video.
+            # ---------------------------------------------------------
+            pose_data = self._estimate_poses(
+                video_path=video,
+                output_vid_path=output_vid_path
+            )
+
+            # ---------------------------------------------------------
+            # Store the results in the appropriate attributes.
+            # ---------------------------------------------------------
+            if video == self.face_on_video_path:
+                self.face_on_pose_data    = pose_data
+                self.face_on_overlay_path = output_vid_path
+            else:
+                self.down_the_line_pose_data    = pose_data
+                self.down_the_line_overlay_path = output_vid_path
+    
+    
     # -----------------------------------------------------------------
     #                        PRIVATE METHODS
     # -----------------------------------------------------------------
     
-    def _estimate_poses( self ) -> List[ Dict[ str, Any ] ]:
+    def _estimate_poses(
+            self, 
+            video_path: str, 
+            output_vid_path: str 
+        ) -> List[ Dict[ str, Any ] ]:
         
         # -------------------------------------------------------------
         # Initialize output structure to hold pose data.
@@ -89,9 +144,9 @@ class PoseEstimation:
         # -------------------------------------------------------------
         # Instantiate a VideoCapture instance with the input video.
         # -------------------------------------------------------------
-        cap = cv2.VideoCapture( self.input_vid_path )
+        cap = cv2.VideoCapture( video_path )
         if not cap.isOpened():
-            raise FileNotFoundError( f"Could not open video: { self.input_vid_path }" )
+            raise FileNotFoundError( f"Could not open video: { video_path }" )
         
         # -------------------------------------------------------------
         # Grab video specific metadata. This will be used if the user
@@ -112,16 +167,15 @@ class PoseEstimation:
         out_width, out_height = ( height, width ) if rotate else ( width, height )
 
         # -------------------------------------------------------------
-        # Initialize overlay video writer if debug visualization is
-        # enabled.
+        # Initialize overlay video writer.
         #
         # NOTE: We must force the MSMY API for H264 encoding. This
         # allows for embedded browser streaming.
         # -------------------------------------------------------------
-        if self.overlay and self.output_vid_path:
+        if output_vid_path:
             fourcc = cv2.VideoWriter.fourcc( *"H264" )
             writer = cv2.VideoWriter(
-                filename=self.output_vid_path,
+                filename=output_vid_path,
                 apiPreference=cv2.CAP_MSMF,
                 fourcc=fourcc,
                 fps=fps,
@@ -185,7 +239,7 @@ class PoseEstimation:
             # ---------------------------------------------------------
             # Optional: Overlay Pose Estimation on the input video.
             # ---------------------------------------------------------
-            if self.overlay and writer:
+            if writer:
                 overlaid = frame.copy()
 
                 # -----------------------------------------------------
@@ -218,7 +272,7 @@ class PoseEstimation:
             writer.release()
 
         # -------------------------------------------------------------
-        # ...
+        # TODO
         # -------------------------------------------------------------
             ### Interpolate Missing Pose Data Here ###
 
