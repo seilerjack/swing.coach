@@ -4,12 +4,10 @@
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
 
-from zipfile import Path
 import cv2
 import os
 import sys
 import uuid
-import tempfile
 
 # ---------------------------------------------------------------------
 # Add the parent directory to the system path to allow for relative
@@ -18,9 +16,7 @@ import tempfile
 PARENT_DIR = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
 sys.path.append( PARENT_DIR )
 
-from lib                        import SHARED_DIR
-from pathlib                    import Path
-from typing                     import Any, Dict, List, Optional  
+from typing                     import Any, Dict, List
 from mediapipe.python.solutions import drawing_utils as mp_drawing_utils
 from mediapipe.python.solutions import pose          as mp_pose_module
 
@@ -137,7 +133,10 @@ class PoseEstimation:
         ) -> List[ Dict[ str, Any ] ]:
         
         # -------------------------------------------------------------
-        # Initialize output structure to hold pose data.
+        # Initialize output structure to hold pose data for all frames.
+        # Each frame will contain:
+        #   - combined landmark data with image and world coordinates,
+        #     visibility, presence, and validity
         # -------------------------------------------------------------
         frames: List[ Dict[ str, Any ] ] = []
 
@@ -188,6 +187,7 @@ class PoseEstimation:
         # -------------------------------------------------------------
         frame_idx = 0
         while cap.isOpened():
+
             # ---------------------------------------------------------
             # Read video frame-by-frame. Exit if the read is 
             # unsuccessful for any frame.
@@ -205,35 +205,70 @@ class PoseEstimation:
             )
 
             # ---------------------------------------------------------
-            # Init structure to hold the landmarks for this frame.
+            # Initialize per-frame landmark container.
             # ---------------------------------------------------------
-            frame_landmarks: Dict[ str, Dict[ str, Any ] ] = {}
+            landmarks: Dict[ str, Dict[ str, Any ] ] = {}
 
             # ---------------------------------------------------------
-            # Map each MediaPipe landmark to an x, y coordinate and a
-            # validity flag
+            # Populate landmarks if detected.
             # ---------------------------------------------------------
-            if frame_corrected.pose_landmarks:
-                for landmark_name, landmark_enum in self.mp_pose.PoseLandmark.__members__.items():
-                    landmark = frame_corrected.pose_landmarks.landmark[ landmark_enum ]
-                    frame_landmarks[ landmark_name ] = {
-                        "x": float( landmark.x ),
-                        "y": float( landmark.y ),
-                        "valid": landmark.visibility > 0.6,
+            if frame_corrected.pose_landmarks and frame_corrected.pose_world_landmarks:
+
+                for name, enum in self.mp_pose.PoseLandmark.__members__.items():
+
+                    lm_img   = frame_corrected.pose_landmarks.landmark[ enum ]
+                    lm_world = frame_corrected.pose_world_landmarks.landmark[ enum ]
+
+                    # -------------------------------------------------
+                    # Landmark data must have at least a 60% visibility
+                    # score for the frame to be considered valid.
+                    # -------------------------------------------------
+                    valid = lm_img.visibility > 0.6
+
+                    # -------------------------------------------------
+                    # Combined landmark data
+                    # -------------------------------------------------
+                    landmarks[ name ] = {
+                        "image": {
+                            "x": float( lm_img.x ),
+                            "y": float( lm_img.y ),
+                            "z": float( lm_img.z ),
+                        },
+                        "world": {
+                            "x": float( lm_world.x ),
+                            "y": float( lm_world.y ),
+                            "z": float( lm_world.z ),
+                        },
+                        "visibility": float( lm_img.visibility ),
+                        "presence": float( lm_img.presence ),
+                        "valid": valid,
                     }
-                
+
             # ---------------------------------------------------------
-            # If no landmarks are detected, mark all as invalid for
-            # this frame.
+            # If no pose detected, mark all landmarks invalid.
             # ---------------------------------------------------------
             else:
-                for landmark_name in self.mp_pose.PoseLandmark.__members__:
-                    frame_landmarks[ landmark_name ] = { "x": None, "y": None, "valid": False }
+                for name in self.mp_pose.PoseLandmark.__members__:
+                    landmarks[ name ] = {
+                        "image": {
+                            "x": None, "y": None, "z": None,
+                        },
+                        "world": {
+                            "x": None, "y": None, "z": None,
+                        },
+                        "visibility": 0.0,
+                        "presence": 0.0,
+                        "valid": False,
+                    }
 
             # ---------------------------------------------------------
-            # Append any pose data and move on to the next frame.
+            # Append frame pose data.
             # ---------------------------------------------------------
-            frames.append( { "frame_index": frame_idx, "landmarks": frame_landmarks } )
+            frames.append( {
+                "frame_index": frame_idx,
+                "landmarks": landmarks,
+            } )
+
             frame_idx += 1
 
             # ---------------------------------------------------------
