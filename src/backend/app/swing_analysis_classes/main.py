@@ -113,16 +113,19 @@ class Analyze():
         # -------------------------------------------------------------
         # Perform metrics calculations based on the extracted pose data.
         # -------------------------------------------------------------
-        # metrics_calculator = MetricsCalculator( pose_data=pose_estimator.pose_data )
+        metrics_calculator = MetricsCalculator(
+            face_on_pose_data = pose_estimator.face_on_pose_data,
+            down_the_line_pose_data = pose_estimator.down_the_line_pose_data
+        )
 
         # -------------------------------------------------------------
         # Build the prompt for the AI model using the calculated
         # metrics.
         # -------------------------------------------------------------
-        # prompt_builder = PromptBuilder(
-        #     experience_level=self.experience_level,
-        #     metrics=metrics_calculator.metrics
-        # )
+        prompt_builder = PromptBuilder(
+            experience_level=self.experience_level,
+            metrics=metrics_calculator.metrics
+        )
         
         # -------------------------------------------------------------
         # Send the prompt to the AI model and get the analysis.

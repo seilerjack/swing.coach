@@ -13,48 +13,54 @@ from   enum   import Enum
 #                                  CONSTANTS
 # -----------------------------------------------------------------------------
 
-DELIMITER = \
-    textwrap.dedent( "-----" )
+DELIMITER = textwrap.dedent( "-----" )
 
 # -----------------------------------------------------------------------------
 # Provides high-level instructions and framing for the LLM. This block explains
 # the role (golf coach + biomechanics expertise) and overall analysis 
 # objectives.
 # -----------------------------------------------------------------------------
-CONTEXT = \
-    textwrap.dedent( f"""\
-                     Context
-                     You are an experienced golf coach with additional background in biomechanics.
-
-                     You use your expertise and knowledge of human movement to provide insightful, actionable feedback to golfers aiming to improve their swing technique.
-
-                     Analyze the following golf swing metrics and provide feedback on the player's movement and technique.
-                    
-                     Use a supportive tone and concise language, focusing on practical advice that the golfer can implement to enhance their performance.
-                     { DELIMITER }
-                     """ )
+CONTEXT = textwrap.dedent( f"""\
+Context
+You are an experienced golf coach with additional background in biomechanics.
+You use your expertise and knowledge of human movement to provide insightful, actionable feedback to golfers aiming to improve their swing technique.
+Analyze the following golf swing metrics and provide feedback on the player's movement and technique.
+Use a supportive tone and concise language, focusing on practical advice that the golfer can implement to enhance their performance.
+{ DELIMITER }
+""" )
 
 # -----------------------------------------------------------------------------
 # Provides specific tasks the LLM should perform based on the provided data.
 # -----------------------------------------------------------------------------
-TASKS = \
-    textwrap.dedent( f"""\
-                     Task
-                     IMPORTANT - Tailor your language and depth of explanation to the golfer's experience level: beginner, intermediate, or advanced.
-                     1. Interpret what these values suggest about the golfer's swing mechanics.
-                     2. Evaluate the gof swing using the following categories:
-                        - Posture and Setup
-                        - Backswing
-                        - Downswing
-                        - Impact Position
-                        - Follow-Through
-                        Assign each category a score from 0 - 100 and provide a one-sentence explanation.
-                        Then compute an overall score from 0-100 reflecting the swing as a whole.
-                     3. Offer 2-3 specific, actionable coaching tips for improvement.
-                         - If the swing metrics and outcome indicate a successful shot, it is acceptable if fewer than 3 issues are noted.
-                         - These coaching tips should be no more than one sentence each.
-                     { DELIMITER }
-                     """ )
+TASKS = textwrap.dedent(f"""\
+Task
+
+IMPORTANT:
+- Base your analysis ONLY on the provided metrics.
+- Do not assume missing data.
+- If a metric suggests uncertainty, acknowledge it briefly.
+
+Tailor your explanation depth to the golfer's experience level.
+
+1. Interpret what the metrics suggest about:
+   - Posture and Setup
+   - Backswing
+   - Downswing
+   - Impact Position
+   - Follow-Through
+
+2. Score each category from 0-100.
+   - Provide a one-sentence justification for each score.
+   - Then compute an overall swing score (0-100).
+
+3. Provide 2-3 concise, actionable coaching recommendations.
+   - One sentence each.
+   - Prioritize the highest-impact improvement areas.
+
+Be concise, structured, and practical.
+{ DELIMITER }
+""")
+
 
 # -----------------------------------------------------------------------------
 #                                   CLASSES
@@ -120,11 +126,12 @@ class PromptBuilder:
     #
     # -----------------------------------------------------------------
     def _build_situation( self ) -> str:
-        return textwrap.dedent( f"""\
-                                Situation
-                                The golfer is at an { self.experience_level } experience level.
-                                { DELIMITER }
-                                """ )
+        return textwrap.dedent(f"""\
+        Situation
+        The golfer is at a { self.experience_level } experience level.
+        The analysis includes both Face-On and Down-the-Line swing data when available.
+        { DELIMITER }
+        """)
 
 
     # -----------------------------------------------------------------
@@ -136,19 +143,103 @@ class PromptBuilder:
     #       formatted output from the metrics dictionary.
     #
     # -----------------------------------------------------------------
-    def _build_metrics( self ) -> str:
-        return textwrap.dedent( f"""\
-                                Pose Metrics
-                                - Shoulder rotation backswing : { self.metrics[ "shoulder_rotation_range_deg_backswing" ]:.2f}°
-                                - Shoulder rotation range     : { self.metrics[ "shoulder_rotation_range_deg" ]:.2f}°
-                                - Hip rotation backswing      : { self.metrics[ "hip_rotation_range_deg_backswing" ]:.2f}°
-                                - Hip rotation range          : { self.metrics[ "hip_rotation_range_deg" ]:.2f}°
-                                - Spine tilt (mean)           : { self.metrics[ "spine_tilt_mean_deg" ]:.2f}°
-                                - Spine tilt (range)          : { self.metrics[ "spine_tilt_range_deg" ]:.2f}°
-                                - Head movement (X)           : { self.metrics[ "head_movement_x" ]:.2f}% (lateral)
-                                - Head movement (Y)           : { self.metrics[ "head_movement_y" ]:.2f}% (vertical)
-                                { DELIMITER }
-                                """ )
+    def _build_metrics(self) -> str:
+
+        # -------------------------------------------------------------
+        # Initialize the section header. This primes the LLM to 
+        # interpret the following values as structured numerical
+        # inputs.
+        # -------------------------------------------------------------
+        lines = [ "Quantitative Swing Metrics" ]
+
+        # -------------------------------------------------------------
+        # Iterate through each camera view in the metrics dictionary.
+        # Expected structure:
+        # {
+        #   "face_on": { "metrics": {...} },
+        #   "down_the_line": { "metrics": {...} }
+        # }
+        # -------------------------------------------------------------
+        for view_name, view_data in self.metrics.items():
+
+            # ---------------------------------------------------------
+            # Format the camera view name for readability in the 
+            # prompt.
+            # Example: "face_on" -> "Face On View:"
+            # ---------------------------------------------------------
+            lines.append( f"\n{ view_name.replace( '_', ' ' ).title() } View:" )
+
+            # ---------------------------------------------------------
+            # Safely extract the metric dictionary for this view.
+            # Default to empty dict if key is missing.
+            # ---------------------------------------------------------
+            metric_dict = view_data.get( "metrics", {} )
+
+            # ---------------------------------------------------------
+            # If no metrics exist for this view, explicitly state it.
+            # This prevents the LLM from assuming missing data.
+            # ----------------------------------------------------------
+            if not metric_dict:
+                lines.append( "  (No metrics available)" )
+                continue
+
+            # ----------------------------------------------------------
+            # Iterate through each metric in the current view.
+            # Supports two formats:
+            #
+            # 1) Simple scalar:
+            #    "shoulder_tilt": 12.4
+            #
+            # 2) Structured metric object:
+            #    "shoulder_tilt": {
+            #         "value": 12.4,
+            #         "unit": "degrees"
+            #     }
+            #
+            # This keeps the system future-proof without changing prompt
+            # logic.
+            # -------------------------------------------------------------
+            for metric_name, metric_value in metric_dict.items():
+
+                # ---------------------------------------------------------
+                # Handle structured metric object
+                # ---------------------------------------------------------
+                if isinstance( metric_value, dict ):
+                    value = metric_value.get( "value" )
+                    unit  = metric_value.get( "unit", "" )
+                else:
+                    # -----------------------------------------------------
+                    # Handle simple scalar metric
+                    # -----------------------------------------------------
+                    value = metric_value
+                    unit  = ""
+
+                # ---------------------------------------------------------
+                # Format numerical values consistently.
+                # Floats are rounded to 2 decimal places for readability.
+                # Non-numeric values are converted directly to string.
+                # ---------------------------------------------------------
+                if isinstance( value, float ):
+                    value_str = f"{value:.2f}"
+                else:
+                    value_str = str( value )
+
+                # ---------------------------------------------------------
+                # Format metric name for readability:
+                # "shoulder_rotation_range" -> "Shoulder Rotation Range"
+                # ---------------------------------------------------------
+                lines.append( f"  - { metric_name.replace( '_', ' ' ).title() }: { value_str } { unit }" )
+
+        # -----------------------------------------------------------------
+        # Append delimiter to clearly separate this section from the next
+        # part of the prompt (e.g., task instructions).
+        # -----------------------------------------------------------------
+        lines.append( DELIMITER )
+
+        # -----------------------------------------------------------------
+        # Join all accumulated lines into a single formatted string.
+        # -----------------------------------------------------------------
+        return "\n".join( lines )
 
 
 # -----------------------------------------------------------------------------
@@ -158,3 +249,29 @@ class PromptBuilder:
 # -----------------------------------------------------------------------------
 #                                  EXECUTION 
 # -----------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    # -------------------------------------------------------------
+    # Example usage of the PromptBuilder class.
+    # -------------------------------------------------------------
+    example_metrics = {
+        "face_on": {
+            "metrics": {
+                "swing_speed": { "value": 85.5, "unit": "mph" },
+                "club_path_angle": { "value": -2.3, "unit": "degrees" }
+            }
+        },
+        "down_the_line": {
+            "metrics": {
+                "attack_angle": { "value": 1.5, "unit": "degrees" },
+                "face_to_path_angle": { "value": 0.5, "unit": "degrees" }
+            }
+        }
+    }
+
+    prompt_builder = PromptBuilder(
+        experience_level="intermediate",
+        metrics=example_metrics
+    )
+
+    print( prompt_builder.prompt )

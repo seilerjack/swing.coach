@@ -59,7 +59,7 @@ class PoseEstimation:
         self.mp_pose    = mp_pose_module
         self.pose_obj   = self.mp_pose.Pose(
             static_image_mode=False,
-            model_complexity=1,
+            model_complexity=2,
             smooth_landmarks=True,
             enable_segmentation=False,
             min_detection_confidence=0.8,
