@@ -1,7 +1,7 @@
 "use client";
 
 import { TrendingUp, Lightbulb } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import AnalysisForm from "./AnalysisForm";
 import AnalysisLoading from "./AnalysisLoading";
 
@@ -27,17 +27,17 @@ type SwingAnalysis = {
 
 type AnalysisResponse = {
   swing_analysis: SwingAnalysis;
-  pose_overlay: string;
+  analysis_id: string;
 };
 
 /* ===================== */
 /*   Utility Helpers     */
 /* ===================== */
 
-export function getScoreColor(score: number) {
-  if (score >= 85) return "bg-green-500";
-  if (score >= 70) return "bg-orange-500";
-  return "bg-red-500";
+function getScoreColor(score: number) {
+  if (score >= 85) return "#10b981";
+  if (score >= 70) return "#f59e0b";
+  return "#ef4444";
 }
 
 /* ===================== */
@@ -62,9 +62,7 @@ export default function AnalyzePage() {
         body: formData,
       });
 
-      if (!res.ok) {
-        throw new Error("Analysis failed");
-      }
+      if (!res.ok) throw new Error("Analysis failed");
 
       const data: AnalysisResponse = await res.json();
       setResult(data);
@@ -74,7 +72,7 @@ export default function AnalyzePage() {
   };
 
   return (
-    <main className="relative mx-auto max-w-6xl px-6 py-12">
+    <main className="relative mx-auto max-w-7xl px-6 py-14">
       {!result && !isLoading && <AnalysisForm onSubmit={handleAnalyze} />}
       {isLoading && <AnalysisLoading />}
       {result && <ResultsSection result={result} onReset={handleReset} />}
@@ -86,8 +84,14 @@ export default function AnalyzePage() {
 /*     Results UI        */
 /* ===================== */
 
-function ResultsSection({ result, onReset }: { result: AnalysisResponse; onReset: () => void }) {
-  const { swing_analysis, pose_overlay } = result;
+function ResultsSection({
+  result,
+  onReset,
+}: {
+  result: AnalysisResponse;
+  onReset: () => void;
+}) {
+  const { swing_analysis, analysis_id } = result;
 
   const sortedCategories = [...swing_analysis.categoryScores].sort(
     (a, b) => a.score - b.score
@@ -95,37 +99,158 @@ function ResultsSection({ result, onReset }: { result: AnalysisResponse; onReset
 
   const topPriorityFix = sortedCategories[0];
 
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const [collapsed, setCollapsed] = useState(false);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+
+  /* Count Up Animation */
+  useEffect(() => {
+    let start = 0;
+    const end = swing_analysis.overallScore;
+    const duration = 1200;
+    const stepTime = 16;
+    const increment = end / (duration / stepTime);
+
+    const counter = setInterval(() => {
+      start += increment;
+      if (start >= end) {
+        start = end;
+        clearInterval(counter);
+      }
+      setAnimatedScore(Math.round(start));
+    }, stepTime);
+
+    return () => clearInterval(counter);
+  }, [swing_analysis.overallScore]);
+
+  /* Collapse when scrolled past header section */
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!headerRef.current) return;
+      const rect = headerRef.current.getBoundingClientRect();
+      setCollapsed(rect.bottom < 120);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const strokeColor = getScoreColor(animatedScore);
+
+  /* Large */
+  const largeRadius = 70;
+  const largeCircumference = 2 * Math.PI * largeRadius;
+
   return (
-    <section className="grid gap-10 lg:grid-cols-[420px_1fr] items-start">
+    <section className="relative space-y-16">
 
       {/* ===================== */}
-      {/*      LEFT COLUMN      */}
+      {/* TOP SECTION           */}
       {/* ===================== */}
-      <div className="space-y-6">
-        <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200/60">
-          <video
-            src={`http://localhost:8000${pose_overlay}`}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            className="w-full rounded-2xl bg-black"
-          />
+
+      <div
+        ref={headerRef}
+        className="grid gap-10 lg:grid-cols-4 items-stretch"
+      >
+        {/* Score (1/4 width) */}
+        <div className="rounded-3xl bg-white p-10 shadow-xl ring-1 ring-gray-200 h-full flex flex-col items-center justify-center">
+
+          <p className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-6">
+            Overall Swing Score
+          </p>
+
+          <div className="relative h-44 w-44">
+            <svg className="-rotate-90 h-44 w-44">
+              <circle
+                cx="88"
+                cy="88"
+                r={largeRadius}
+                strokeWidth="12"
+                stroke="#e5e7eb"
+                fill="none"
+              />
+              <circle
+                cx="88"
+                cy="88"
+                r={largeRadius}
+                strokeWidth="12"
+                stroke={strokeColor}
+                fill="none"
+                strokeDasharray={largeCircumference}
+                strokeDashoffset={
+                  largeCircumference * (1 - animatedScore / 100)
+                }
+                strokeLinecap="round"
+              />
+            </svg>
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-5xl font-bold">
+                {animatedScore}
+              </span>
+              <span className="text-sm text-gray-500 mt-1">
+                Grade {swing_analysis.letterGrade}
+              </span>
+            </div>
+          </div>
+
         </div>
 
-        <details className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60">
-          <summary className="flex cursor-pointer list-none items-center justify-between font-semibold">
-            <span>Key Points Analysis</span>
-            <span className="text-sm text-gray-500 group-open:hidden">
-              Expand
-            </span>
-            <span className="hidden text-sm text-gray-500 group-open:inline">
-              Collapse
-            </span>
-          </summary>
+        {/* Technical Analysis (3/4 width) */}
+        <div className="lg:col-span-3 rounded-3xl bg-white p-10 shadow-xl ring-1 ring-gray-200">
+          <div className="mb-6 flex items-center gap-3">
+            <TrendingUp className="h-5 w-5 text-blue-600" />
+            <h3 className="text-xl font-semibold">
+              Technical Analysis
+            </h3>
+          </div>
 
-          <div className="mt-4 space-y-4">
+          <p className="text-[15px] leading-7 text-gray-700">
+            {swing_analysis.swingAnalysis}
+          </p>
+        </div>
+      </div>
+
+      {/* ===================== */}
+      {/* VIDEOS                */}
+      {/* ===================== */}
+
+      <div className="grid gap-10 lg:grid-cols-2">
+        <video
+          src={`http://localhost:8000/analysis/${analysis_id}/overlay/face_on`}
+          autoPlay
+          loop
+          muted
+          controls
+          playsInline
+          preload="metadata"
+          className="w-full rounded-2xl shadow-xl"
+        />
+
+        <video
+          src={`http://localhost:8000/analysis/${analysis_id}/overlay/down_the_line`}
+          autoPlay
+          loop
+          muted
+          controls
+          playsInline
+          preload="metadata"
+          className="w-full rounded-2xl shadow-xl"
+        />
+      </div>
+
+      {/* ===================== */}
+      {/* LOWER GRID            */}
+      {/* ===================== */}
+
+      <div className="grid gap-10 lg:grid-cols-3">
+
+        <div className="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-gray-200">
+          <h3 className="mb-6 text-lg font-semibold">
+            Performance Breakdown
+          </h3>
+
+          <div className="space-y-6">
             {sortedCategories.map((category) => {
               const barColor = getScoreColor(category.score);
 
@@ -138,72 +263,46 @@ function ResultsSection({ result, onReset }: { result: AnalysisResponse; onReset
                     </span>
                   </div>
 
-                  <p className="mb-2 text-sm text-gray-700">
+                  <p className="mb-2 text-sm text-gray-600">
                     {category.summary}
                   </p>
 
                   <div className="h-2 w-full rounded bg-gray-200">
                     <div
-                      className={`h-2 rounded ${barColor}`}
-                      style={{ width: `${category.score}%` }}
+                      className="h-2 rounded"
+                      style={{
+                        width: `${category.score}%`,
+                        backgroundColor: barColor,
+                      }}
                     />
                   </div>
                 </div>
               );
             })}
           </div>
-        </details>
-      </div>
-
-      {/* ===================== */}
-      {/*     RIGHT COLUMN     */}
-      {/* ===================== */}
-      <div className="space-y-10">
-        <div className="rounded-2xl bg-green-50 p-8 text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">
-            Overall Score
-          </p>
-          <p className="mt-2 text-6xl font-bold text-gray-900">
-            {swing_analysis.overallScore}
-          </p>
-          <p className="text-sm text-gray-600">
-            out of 100 • Grade {swing_analysis.letterGrade}
-          </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60">
-          <div className="mb-4 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold">Technical Analysis</h3>
-          </div>
-
-          <p className="text-sm leading-relaxed text-gray-700">
-            {swing_analysis.swingAnalysis}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border-l-4 border-orange-500 bg-orange-50 p-6">
-          <h4 className="mb-1 text-sm font-semibold uppercase tracking-wide text-orange-700">
+        <div className="rounded-3xl border-l-4 border-orange-500 bg-orange-50 p-8">
+          <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-orange-700">
             Top Priority Fix
           </h4>
           <p className="text-base font-semibold text-gray-900">
             {topPriorityFix.name}
           </p>
-          <p className="mt-2 text-sm text-gray-700">
+          <p className="mt-3 text-sm text-gray-700">
             {topPriorityFix.summary}
-          </p>
-          <p className="mt-3 text-xs text-gray-600">
-            Score: {topPriorityFix.score}/100
           </p>
         </div>
 
-        <details className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60">
-          <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold">
+        <div className="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-gray-200">
+          <div className="mb-4 flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-yellow-600" />
-            Coaching Tips
-          </summary>
+            <h3 className="text-lg font-semibold">
+              Coaching Tips
+            </h3>
+          </div>
 
-          <ul className="mt-4 space-y-3 text-sm">
+          <ul className="space-y-3 text-sm">
             {swing_analysis.coachingTips.map((tip, i) => (
               <li
                 key={i}
@@ -213,23 +312,17 @@ function ResultsSection({ result, onReset }: { result: AnalysisResponse; onReset
               </li>
             ))}
           </ul>
-        </details>
-
-        <div className="pointer-events-none sticky bottom-6 flex justify-end">
-          <button
-            onClick={onReset}
-            className="
-            pointer-events-auto
-            rounded-full bg-gray-900 px-5 py-3
-              text-sm font-semibold text-white
-              shadow-lg transition
-              hover:bg-gray-800 hover:scale-105
-              active:scale-95
-              "
-              >
-            Analyze another swing
-          </button>
         </div>
+
+      </div>
+
+      <div className="pointer-events-none sticky bottom-6 flex justify-end">
+        <button
+          onClick={onReset}
+          className="pointer-events-auto rounded-full bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-gray-800 hover:scale-105 active:scale-95"
+        >
+          Analyze another swing
+        </button>
       </div>
 
     </section>
