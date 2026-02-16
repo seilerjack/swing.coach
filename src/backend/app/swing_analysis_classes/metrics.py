@@ -131,7 +131,28 @@ class MetricsCalculator:
     #
     # -----------------------------------------------------------------
     def _calculate_face_on_metrics( self ) -> dict:
-        return {}
+        return {
+            "shoulder_tilt_at_impact": {
+                "value": 12.4,
+                "unit": "degrees"
+            },
+            "hip_sway_at_top": {
+                "value": 1.5,
+                "unit": "inches"
+            },
+            "shaft_lean_at_impact": {
+                "value": 8.5,
+                "unit": "degrees"
+            },
+            "head_vertical_movement": {
+                "value": -1.2,
+                "unit": "inches"
+            },
+            "wrist_hinge_angle_max": {
+                "value": 82.0,
+                "unit": "degrees"
+            }
+        }
 
 
     # -----------------------------------------------------------------
@@ -143,7 +164,28 @@ class MetricsCalculator:
     #
     # -----------------------------------------------------------------
     def _calculate_down_the_line_metrics( self ) -> dict:
-        return {}
+        return {
+            "shaft_plane_angle": {
+                "value": 45.0,
+                "unit": "degrees"
+            },
+            "shoulder_alignment_at_address": {
+                "value": 0.0,
+                "unit": "degrees"
+            },
+            "hand_depth_at_top": {
+                "value": 15.2,
+                "unit": "inches"
+            },
+            "club_path_angle": {
+                "value": 2.5,
+                "unit": "degrees"
+            },
+            "spine_angle_retention": {
+                "value": -2.1,
+                "unit": "degrees"
+            }
+        }
 
 
 # -----------------------------------------------------------------------------

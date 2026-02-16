@@ -5,16 +5,30 @@
 # -----------------------------------------------------------------------------
 
 import os
+import tempfile
+
+from   pathlib   import Path
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
 # -----------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
-# For any module requiring an output path.
+# Reference to repo root.
 # ---------------------------------------------------------------------
 BASE_DIR   = os.path.dirname( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ) )
+
+# ---------------------------------------------------------------------
+# DO NOT USE PROD. This is for testing intermediate files generated 
+# during the analysis process.
+# ---------------------------------------------------------------------
 SHARED_DIR = os.path.join( BASE_DIR, "shared" )
+
+# ---------------------------------------------------------------------
+# Reference to on disk runtime storage for analysis artifacts.
+# ---------------------------------------------------------------------
+BASE_STORAGE_DIR = Path( tempfile.gettempdir() ) / "swingcoach_storage"
+BASE_STORAGE_DIR.mkdir( exist_ok=True )
 
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES

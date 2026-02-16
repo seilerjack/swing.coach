@@ -17,15 +17,15 @@ import tempfile
 PARENT_DIR = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
 sys.path.append( PARENT_DIR )
 
+from   app.lib                         import BASE_STORAGE_DIR
 from   app.swing_analysis_classes.main import Analyze
 from   datetime                        import datetime, timedelta, timezone
 from   email.mime.application          import MIMEApplication
 from   email.mime.multipart            import MIMEMultipart
 from   email.generator                 import BytesGenerator
 from   fastapi                         import APIRouter, HTTPException, UploadFile, File, Form
-from   fastapi.responses               import StreamingResponse
+from   fastapi.responses               import StreamingResponse, FileResponse
 from   pathlib                         import Path
-from   pydantic                        import BaseModel
 from   typing                          import Dict
 from   uuid                            import uuid4
 
@@ -50,23 +50,68 @@ ANALYSIS_TTL = timedelta( minutes=15 )
 #                                  CLASSES
 # -----------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------
-#
-#   CLASS NAME: 
-#
-#   DESCRIPTION:
-#       Pydantic base model for the required swing analysis resources.
-#
-# ---------------------------------------------------------------------
-class SwingAnalysis( BaseModel ):
-    down_the_line: UploadFile = File( ... )     # Down-the-line swing video input
-    face_on: UploadFile = File( ... )           # Face-on swing video input
-    experience_level: str = Form( ... )         # User's experience level input
-
-
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
 # -----------------------------------------------------------------------------
+
+def cleanup_expired_analyses():
+    now = datetime.now( timezone.utc )
+
+    expired_ids = [
+        aid for aid, data in ANALYSIS_CACHE.items()
+        if data[ "expires_at" ] < now
+    ]
+
+    for aid in expired_ids:
+        analysis_dir = Path( ANALYSIS_CACHE[ aid ][ "analysis_dir" ] )
+
+        try:
+            shutil.rmtree( analysis_dir )
+        except Exception:
+            pass
+
+        ANALYSIS_CACHE.pop( aid, None )
+
+
+# ---------------------------------------------------------------------
+#
+#   FUNCTION NAME: validate_analysis_cache
+#
+#   DESCRIPTION:
+#       Validates that an analysis session exists and has not expired.
+#       Returns the cached analysis dictionary if valid.
+#
+#       Raises:
+#           404 -> If analysis ID does not exist
+#           410 -> If analysis has expired
+#
+# ---------------------------------------------------------------------
+def validate_analysis_cache(
+    analysis_id: str,
+) -> dict:
+
+    # -----------------------------------------------------------------
+    # Retrieve the analysis ID from the cache. If id doesn't exist
+    # throw a 404.
+    # -----------------------------------------------------------------
+    id = ANALYSIS_CACHE.get( analysis_id )
+    if not id:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not found.",
+        )
+
+    # -----------------------------------------------------------------
+    # If the TTL has expired for this analysis ID, throw a 410.
+    # -----------------------------------------------------------------
+    if id[ "expires_at" ] < datetime.now( timezone.utc ):
+        raise HTTPException(
+            status_code=410,
+            detail="Analysis expired.",
+        )
+
+    return id
+
 
 # ---------------------------------------------------------------------
 #
@@ -78,14 +123,28 @@ class SwingAnalysis( BaseModel ):
 # ---------------------------------------------------------------------
 @router.post("/")
 async def analyze(
-    swing: SwingAnalysis
+    down_the_line: UploadFile = File( ... ),     # Down-the-line swing video input
+    face_on: UploadFile = File( ... ),           # Face-on swing video input
+    experience_level: str = Form( ... )          # User's experience level input
 ) -> Dict:
     
+    # -----------------------------------------------------------------
+    # Cleanup expired analyses on each new analysis request to manage 
+    # memory.
+    # -----------------------------------------------------------------
+    cleanup_expired_analyses()
+
     # -----------------------------------------------------------------
     # Create an analysis ID to uniquely identify this analysis session
     # and to help identify analysis artifacts.
     # -----------------------------------------------------------------
-    analysis_id = str( uuid4())
+    analysis_id = str( uuid4() )
+
+    # -----------------------------------------------------------------
+    # Create persistent runtime directory for this analysis.
+    # -----------------------------------------------------------------
+    analysis_dir = BASE_STORAGE_DIR / analysis_id
+    analysis_dir.mkdir( parents=True, exist_ok=True )
 
     # -----------------------------------------------------------------
     # Create a unique temporary directory to store the input file and
@@ -106,8 +165,8 @@ async def analyze(
         # Write the uploaded files to the temporary location.
         # -------------------------------------------------------------
         for file, path in [ 
-            ( swing.face_on, face_on_path ), 
-            ( swing.down_the_line, down_the_line_path ) 
+            ( face_on, face_on_path ), 
+            ( down_the_line, down_the_line_path ) 
         ]:
             with path.open( "wb" ) as buffer:
                 shutil.copyfileobj( file.file, buffer )
@@ -119,16 +178,29 @@ async def analyze(
             face_on_path=str( face_on_path ),
             down_the_line_path=str( down_the_line_path ),
             temp_dir_path=str( tmp_dir_path ),
-            experience_level=swing.experience_level
+            experience_level=experience_level
         )
+
+        # -------------------------------------------------------------
+        # Move final overlays OUT of temp dir into persistent dir.
+        # -------------------------------------------------------------
+        final_face_on = analysis_dir / "face_on_overlay.mp4"
+        final_down_the_line = analysis_dir / "down_the_line_overlay.mp4"
+
+        if output.face_on_overlay_path:
+            shutil.move( output.face_on_overlay_path, final_face_on )
+        if output.down_the_line_overlay_path:
+            shutil.move( output.down_the_line_overlay_path, final_down_the_line )
 
         # -------------------------------------------------------------
         # Store the analysis artifact paths in the in-memory cache.
         # -------------------------------------------------------------
         ANALYSIS_CACHE[ analysis_id ] = {
-            "face_on_overlay": output.face_on_overlay_path,
-            "down_the_line_overlay": output.down_the_line_overlay_path,
-            "expires_at": datetime.now( timezone.utc ) + ANALYSIS_TTL
+            "face_on_overlay": str( final_face_on ),
+            "down_the_line_overlay": str( final_down_the_line ),
+            "analysis_dir": str( analysis_dir ),
+            "expires_at": datetime.now( timezone.utc ) + ANALYSIS_TTL,
+            "consumed": set()
         }
 
         # -------------------------------------------------------------
@@ -144,113 +216,73 @@ async def analyze(
 
 # ---------------------------------------------------------------------
 #
-#   ENDPOINT NAME: get_overlays
+#   ENDPOINT NAME: get_face_on_overlay
 #
 #   DESCRIPTION:
-#       Endpoint that allows the frontend to stream the pose-overlay
-#       videos generated during swing analysis from a specific
-#       analysis session.
+#       Streams the face-on pose-overlay video generated during swing
+#       analysis for a specific analysis session. Cleans up artifacts
+#       if both overlays have been retrieved.
 #
 # ---------------------------------------------------------------------
-@router.get("/{analysis_id}/overlay")
-async def get_overlays( 
-    analysis_id: str 
-) -> StreamingResponse:
+@router.get( "/{analysis_id}/overlay/face_on" )
+async def get_face_on_overlay(
+    analysis_id: str
+) -> FileResponse:
 
     # -----------------------------------------------------------------
-    # Retrieve the analysis ID from the cache. If id doesn't exist
-    # throw a 404.
+    # Validate the cache for this analysis ID.
     # -----------------------------------------------------------------
-    id = ANALYSIS_CACHE.get( analysis_id )
-    if not id:
-        raise HTTPException( status_code=404, detail="Analysis not found." )
-    
+    id = validate_analysis_cache( analysis_id )
 
-    # -----------------------------------------------------------------
-    #
-    #   FUNCTION NAME: generate_streaming_response
-    #
-    #   DESCRIPTION:
-    #       Streams both pose-overlay videos (face-on and down-the-
-    #       line) as a single multipart MIME response, then cleans up
-    #       all temporary artifacts associated with this analysis.
-    #
-    #       NOTE: This generator is intended to be used with FastAPI's
-    #       StreamingResponse.
-    #
-    # -----------------------------------------------------------------
-    def generate_streaming_response():
-
-        # -------------------------------------------------------------
-        # Create a multipart MIME container.
-        # "mixed" allows multiple different file parts in one response.
-        # -------------------------------------------------------------
-        msg = MIMEMultipart( "mixed" )
-
-        # -------------------------------------------------------------
-        # Iterate over both overlay videos generated during analysis.
-        # Each entry maps a logical name to a filesystem path.
-        # -------------------------------------------------------------
-        for name, path in [
-            ( "face_on_overlay", id[ "face_on_overlay" ] ),
-            ( "down_the_line_overlay", id[ "down_the_line_overlay" ] )
-        ]:
-            with open( path, "rb" ) as f:
-
-                # -----------------------------------------------------
-                # Wrap the raw MP4 bytes as a MIME application
-                # -----------------------------------------------------
-                part = MIMEApplication( f.read(), _subtype="mp4" )
-                
-                # -----------------------------------------------------
-                # Add headers so the browser understands this as a file
-                # attachment with a meaningful filename
-                # -----------------------------------------------------
-                part.add_header(
-                    "Content-Disposition",
-                    "attachment",
-                    filename=f"{ name }.mp4",
-                )
-
-                # -----------------------------------------------------
-                # Attach this video part to the multipart response
-                # -----------------------------------------------------
-                msg.attach( part )
-
-        # -------------------------------------------------------------
-        # Serialize the multipart message into raw bytes
-        # -------------------------------------------------------------
-        buffer = io.BytesIO()
-        BytesGenerator( buffer ).flatten( msg )
-        buffer.seek( 0 )
-
-        # -------------------------------------------------------------
-        # Yield the entire multipart payload as the streaming response
-        # body. (FastAPI will stream this to the client)
-        # -------------------------------------------------------------
-        yield buffer.read()
-
-        # -------------------------------------------------------------
-        # Remove all temporary files associated with this analysis
-        # (both overlay videos)
-        # -------------------------------------------------------------
-        for path in id.values():
-            if isinstance( path, str ) and Path( path ).exists():
-                Path( path ).unlink()
-
-        # -------------------------------------------------------------
-        # Remove this analysis entry from the in-memory cache
-        # so it does not persist beyond this request
-        # -------------------------------------------------------------
-        ANALYSIS_CACHE.pop( analysis_id, None )
+    video_path = Path( id[ "face_on_overlay" ] )
+    if not video_path.exists():
+        raise HTTPException( status_code=404, detail="Overlay not found." )
 
     # -----------------------------------------------------------------
-    # Return the streaming response with multipart/mixed media type to
-    # the frontend.
+    # Mark this overlay as consumed.
     # -----------------------------------------------------------------
-    return StreamingResponse(
-        generate_streaming_response(),
-        media_type="multipart/mixed",
+    id[ "consumed" ].add( "face_on" )
+
+    return FileResponse(
+        path=video_path,
+        media_type="video/mp4",
+        filename="face_on_overlay.mp4",
+    )
+
+
+# ---------------------------------------------------------------------
+#
+#   ENDPOINT NAME: get_down_the_line_overlay
+#
+#   DESCRIPTION:
+#       Streams the down-the-line pose-overlay video generated during
+#       swing analysis for a specific analysis session. Cleans up
+#       artifacts if both overlays have been retrieved.
+#
+# ---------------------------------------------------------------------
+@router.get( "/{analysis_id}/overlay/down_the_line" )
+async def get_down_the_line_overlay(
+    analysis_id: str
+) -> FileResponse:
+
+    # -----------------------------------------------------------------
+    # Validate the cache for this analysis ID.
+    # -----------------------------------------------------------------
+    id = validate_analysis_cache( analysis_id )
+
+    video_path = Path( id[ "down_the_line_overlay" ] )
+    if not video_path.exists():
+        raise HTTPException( status_code=404, detail="Overlay not found." )
+
+    # -----------------------------------------------------------------
+    # Mark this overlay as consumed.
+    # -----------------------------------------------------------------
+    id[ "consumed" ].add( "down_the_line" )
+
+    return FileResponse(
+        path=video_path,
+        media_type="video/mp4",
+        filename="down_the_line_overlay.mp4",
     )
 
 # -----------------------------------------------------------------------------
