@@ -58,7 +58,7 @@ class Analyze():
         # INPUTS
         # -------------------------------------------------------------
         # Path to the swing video we are analyzing. Include situational
-        # context and swing metadata.
+        # context.
         # -------------------------------------------------------------
         self.face_on_video_path       = face_on_path
         self.down_the_line_video_path = down_the_line_path

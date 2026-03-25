@@ -4,7 +4,6 @@
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
 
-import io
 import os
 import shutil
 import sys
@@ -20,11 +19,8 @@ sys.path.append( PARENT_DIR )
 from   app.lib                         import BASE_STORAGE_DIR
 from   app.swing_analysis_classes.main import Analyze
 from   datetime                        import datetime, timedelta, timezone
-from   email.mime.application          import MIMEApplication
-from   email.mime.multipart            import MIMEMultipart
-from   email.generator                 import BytesGenerator
 from   fastapi                         import APIRouter, HTTPException, UploadFile, File, Form
-from   fastapi.responses               import StreamingResponse, FileResponse
+from   fastapi.responses               import FileResponse
 from   pathlib                         import Path
 from   typing                          import Dict
 from   uuid                            import uuid4
@@ -33,6 +29,9 @@ from   uuid                            import uuid4
 #                                 CONSTANTS
 # -----------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+# An endpoint router for all analysis-related endpoints.
+# ---------------------------------------------------------------------
 router = APIRouter( prefix="/analysis", tags=[ "analysis" ] )
 
 # ---------------------------------------------------------------------
@@ -54,14 +53,35 @@ ANALYSIS_TTL = timedelta( minutes=15 )
 #                                 PROCEDURES
 # -----------------------------------------------------------------------------
 
-def cleanup_expired_analyses():
+# ---------------------------------------------------------------------
+#
+#   FUNCTION NAME: cleanup_expired_analyses
+#
+#   DESCRIPTION:
+#       Removes the artifacts for the expired analyses based on a TTL
+#       set by ANALYSIS_TTL and determined by the current time - TTL.
+#
+# ---------------------------------------------------------------------
+def cleanup_expired_analyses() -> None:
+
+    # -----------------------------------------------------------------
+    # Grab the system's current time.
+    # -----------------------------------------------------------------
     now = datetime.now( timezone.utc )
 
+    # -----------------------------------------------------------------
+    # Iterate through the cached analyses and identify any that have
+    # expired based on the current time - the TTL.
+    # -----------------------------------------------------------------
     expired_ids = [
         aid for aid, data in ANALYSIS_CACHE.items()
         if data[ "expires_at" ] < now
     ]
 
+    # -----------------------------------------------------------------
+    # For each expired analysis, grab the path to the directory holding
+    # the artifacts and try removing it.
+    # -----------------------------------------------------------------
     for aid in expired_ids:
         analysis_dir = Path( ANALYSIS_CACHE[ aid ][ "analysis_dir" ] )
 
@@ -69,7 +89,10 @@ def cleanup_expired_analyses():
             shutil.rmtree( analysis_dir )
         except Exception:
             pass
-
+        
+        # -------------------------------------------------------------
+        # Remove the analysis ID from the cache.
+        # -------------------------------------------------------------
         ANALYSIS_CACHE.pop( aid, None )
 
 
@@ -184,11 +207,12 @@ async def analyze(
         # -------------------------------------------------------------
         # Move final overlays OUT of temp dir into persistent dir.
         # -------------------------------------------------------------
-        final_face_on = analysis_dir / "face_on_overlay.mp4"
+        final_face_on       = analysis_dir / "face_on_overlay.mp4"
         final_down_the_line = analysis_dir / "down_the_line_overlay.mp4"
 
         if output.face_on_overlay_path:
             shutil.move( output.face_on_overlay_path, final_face_on )
+
         if output.down_the_line_overlay_path:
             shutil.move( output.down_the_line_overlay_path, final_down_the_line )
 
@@ -211,7 +235,6 @@ async def analyze(
             "analysis_id": analysis_id,
             "swing_analysis": output.analysis
         }
-
 
 
 # ---------------------------------------------------------------------
@@ -284,6 +307,7 @@ async def get_down_the_line_overlay(
         media_type="video/mp4",
         filename="down_the_line_overlay.mp4",
     )
+
 
 # -----------------------------------------------------------------------------
 #                                 EXECUTION 
