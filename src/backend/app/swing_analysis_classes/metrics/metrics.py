@@ -50,20 +50,31 @@ Down-the-Line — Motion (entire swing window)
 
 import os
 import sys
+import numpy                                as np
 
 # ---------------------------------------------------------------------
-# Add the parent directory to the system path to allow for relative
-# imports.
+# Add the parent and grandparent directories to the system path to
+# allow for relative imports.
 # ---------------------------------------------------------------------
-PARENT_DIR = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
+PARENT_DIR       = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
+GRAND_PARENT_DIR = os.path.dirname( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ) )
 sys.path.append( PARENT_DIR )
+sys.path.append( GRAND_PARENT_DIR )
 
 from lib                                    import *
 from typing                                 import Any, Dict, List
+from swing_analysis_classes.pose_estimation import PoseEstimation
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
 # -----------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# Define reference axes for the mediapipe world coordinate system.
+# ---------------------------------------------------------------------
+VERTICAL_AXIS   = np.array( [ 0.0, 1.0, 0.0 ] )   # Up / down
+HORIZONTAL_AXIS = np.array( [ 1.0, 0.0, 0.0 ] )   # Left / right
+DEPTH_AXIS      = np.array( [ 0.0, 0.0, 1.0 ] )   # Toward / away camera
 
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
@@ -222,4 +233,22 @@ class MetricsCalculator:
 #                                 EXECUTION 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    pass
+    
+    # -------------------------------------------------------------
+    # Extract the pose data from the processed footage.
+    # -------------------------------------------------------------
+    pose_estimator = PoseEstimation(
+        face_on_path = "H:\\GIT\\swing.coach\\test_swings\\j_fo_1.MOV",
+        down_the_line_path = "H:\\GIT\\swing.coach\\test_swings\\test_swing_raw.mp4",
+        temp_dir_path = "H:\\GIT\\swing.coach\\test_swings"
+    )
+
+    # -------------------------------------------------------------
+    # Perform metrics calculations based on the extracted pose data.
+    # -------------------------------------------------------------
+    metrics_calculator = MetricsCalculator(
+        face_on_pose_data = pose_estimator.face_on_pose_data,
+        down_the_line_pose_data = pose_estimator.down_the_line_pose_data
+    )
+
+    print( metrics_calculator.metrics )

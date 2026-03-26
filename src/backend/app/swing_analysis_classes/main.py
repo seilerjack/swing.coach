@@ -19,7 +19,7 @@ sys.path.append( PARENT_DIR )
 # ---------------------------------------------------------------------
 
 from swing_analysis_classes.pose_estimation import PoseEstimation
-from swing_analysis_classes.metrics         import MetricsCalculator
+from swing_analysis_classes.metrics.metrics import MetricsCalculator
 from swing_analysis_classes.prompt          import PromptBuilder
 from services.gemini_endpoint               import Client
 
@@ -123,15 +123,15 @@ class Analyze():
         # metrics.
         # -------------------------------------------------------------
         prompt_builder = PromptBuilder(
-            experience_level=self.experience_level,
-            metrics=metrics_calculator.metrics
+            experience_level = self.experience_level,
+            metrics = metrics_calculator.metrics
         )
         
         # -------------------------------------------------------------
         # Send the prompt to the AI model and get the analysis.
         # -------------------------------------------------------------
         client = Client()
-        self.analysis = client.generate_response( prompt=prompt_builder.prompt )
+        self.analysis = client.generate_response( prompt = prompt_builder.prompt )
 
 # -----------------------------------------------------------------------------
 #                                 EXECUTION 
