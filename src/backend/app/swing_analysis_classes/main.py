@@ -114,8 +114,8 @@ class Analyze():
         # Perform metrics calculations based on the extracted pose data.
         # -------------------------------------------------------------
         metrics_calculator = MetricsCalculator(
-            face_on_pose_data = pose_estimator.face_on_pose_data,
-            down_the_line_pose_data = pose_estimator.down_the_line_pose_data
+            face_on_data = pose_estimator.face_on_data,
+            down_the_line_data = pose_estimator.down_the_line_data
         )
 
         # -------------------------------------------------------------

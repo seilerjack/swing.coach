@@ -50,7 +50,6 @@ Down-the-Line — Motion (entire swing window)
 
 import os
 import sys
-import numpy                                as np
 
 # ---------------------------------------------------------------------
 # Add the parent and grandparent directories to the system path to
@@ -62,19 +61,11 @@ sys.path.append( PARENT_DIR )
 sys.path.append( GRAND_PARENT_DIR )
 
 from lib                                    import *
-from typing                                 import Any, Dict, List
-from swing_analysis_classes.pose_estimation import PoseEstimation
+from typing                                 import Any, Dict
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
 # -----------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------
-# Define reference axes for the mediapipe world coordinate system.
-# ---------------------------------------------------------------------
-VERTICAL_AXIS   = np.array( [ 0.0, 1.0, 0.0 ] )   # Up / down
-HORIZONTAL_AXIS = np.array( [ 1.0, 0.0, 0.0 ] )   # Left / right
-DEPTH_AXIS      = np.array( [ 0.0, 0.0, 1.0 ] )   # Toward / away camera
 
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
@@ -98,16 +89,16 @@ class MetricsCalculator:
 
     def __init__( 
             self,
-            face_on_pose_data: List[ Dict[ str, Any ] ],
-            down_the_line_pose_data: List[ Dict[ str, Any ] ]
+            face_on_data: FullData,
+            down_the_line_data: FullData
         ) -> None:
 
         # -------------------------------------------------------------
         # Initialize the pose data with the frame data outputted by
         # pose_estimation.py.
         # -------------------------------------------------------------        
-        self.face_on_pose_data       = face_on_pose_data
-        self.down_the_line_pose_data = down_the_line_pose_data
+        self.face_on_data       = face_on_data
+        self.down_the_line_data = down_the_line_data
 
         # -------------------------------------------------------------
         # Initialize the metrics dictionary.
@@ -232,23 +223,3 @@ class MetricsCalculator:
 # -----------------------------------------------------------------------------
 #                                 EXECUTION 
 # -----------------------------------------------------------------------------
-if __name__ == "__main__":
-    
-    # -------------------------------------------------------------
-    # Extract the pose data from the processed footage.
-    # -------------------------------------------------------------
-    pose_estimator = PoseEstimation(
-        face_on_path = "H:\\GIT\\swing.coach\\test_swings\\j_fo_1.MOV",
-        down_the_line_path = "H:\\GIT\\swing.coach\\test_swings\\test_swing_raw.mp4",
-        temp_dir_path = "H:\\GIT\\swing.coach\\test_swings"
-    )
-
-    # -------------------------------------------------------------
-    # Perform metrics calculations based on the extracted pose data.
-    # -------------------------------------------------------------
-    metrics_calculator = MetricsCalculator(
-        face_on_pose_data = pose_estimator.face_on_pose_data,
-        down_the_line_pose_data = pose_estimator.down_the_line_pose_data
-    )
-
-    print( metrics_calculator.metrics )

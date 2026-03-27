@@ -16,6 +16,7 @@ import uuid
 PARENT_DIR = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
 sys.path.append( PARENT_DIR )
 
+from lib                        import FullData
 from typing                     import Any, Dict, List
 from mediapipe.python.solutions import drawing_utils as mp_drawing_utils
 from mediapipe.python.solutions import pose          as mp_pose_module
@@ -59,11 +60,11 @@ class PoseEstimation:
         self.mp_pose    = mp_pose_module
         self.pose_obj   = self.mp_pose.Pose(
             static_image_mode=False,
-            model_complexity=2,
+            model_complexity=1,
             smooth_landmarks=True,
             enable_segmentation=False,
-            min_detection_confidence=0.8,
-            min_tracking_confidence=0.8
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
         )
 
         # -------------------------------------------------------------
@@ -81,11 +82,11 @@ class PoseEstimation:
         # Initialize structures to hold the pose data and overlay
         # paths for each video.
         # -------------------------------------------------------------
-        self.face_on_pose_data: List[ Dict[ str, Any ] ]       = []
-        self.down_the_line_pose_data: List[ Dict[ str, Any ] ] = []
+        self.face_on_data: FullData       = { "metadata": {}, "frames": [ {} ] }
+        self.down_the_line_data: FullData = { "metadata": {}, "frames": [ {} ] }
 
-        self.face_on_overlay_path       = None
-        self.down_the_line_overlay_path = None
+        self.face_on_overlay_path         = None
+        self.down_the_line_overlay_path   = None
 
         # -------------------------------------------------------------
         # Apply the pose estimation model and generate the overlays.
@@ -115,10 +116,10 @@ class PoseEstimation:
             # Store the results in the appropriate attributes.
             # ---------------------------------------------------------
             if video == self.face_on_video_path:
-                self.face_on_pose_data    = pose_data
+                self.face_on_data         = pose_data
                 self.face_on_overlay_path = output_vid_path
             else:
-                self.down_the_line_pose_data    = pose_data
+                self.down_the_line_data         = pose_data
                 self.down_the_line_overlay_path = output_vid_path
     
     
@@ -126,19 +127,36 @@ class PoseEstimation:
     #                        PRIVATE METHODS
     # -----------------------------------------------------------------
     
+    # -----------------------------------------------------------------
+    #
+    #   PROCEDURE NAME: _estimate_poses
+    #
+    #   DESCRIPTION:
+    #       Constructs the full dataset for a given video. This
+    #       includes video metadata and frame by frame pose estimation
+    #       data.
+    #
+    #       This method also overlays the pose estimation data ontop of
+    #       the original video file and outputs it as an artifact.
+    #
+    # -----------------------------------------------------------------
     def _estimate_poses(
             self, 
             video_path: str, 
-            output_vid_path: str 
-        ) -> List[ Dict[ str, Any ] ]:
+            output_vid_path: str
+        ) -> FullData:
         
         # -------------------------------------------------------------
         # Initialize output structure to hold pose data for all frames.
+        # Metatdata will contain:
+        #   - video width, height, fps, total frames, rotation applied
         # Each frame will contain:
         #   - combined landmark data with image and world coordinates,
         #     visibility, presence, and validity
         # -------------------------------------------------------------
+        metadata: Dict[ str, Any ]       = {}
         frames: List[ Dict[ str, Any ] ] = []
+        full_data: FullData              = { "metadata": {}, "frames": [ {} ] }
 
         # -------------------------------------------------------------
         # Instantiate a VideoCapture instance with the input video.
@@ -162,7 +180,7 @@ class PoseEstimation:
         # 
         # OpenCV ignores rotation metadata.
         # -------------------------------------------------------------
-        rotate = True
+        rotate = width > height
         out_width, out_height = ( height, width ) if rotate else ( width, height )
 
         # -------------------------------------------------------------
@@ -195,6 +213,14 @@ class PoseEstimation:
             ret, frame = cap.read()
             if not ret:
                 break
+
+            # -----------------------------------------------------
+            # Rotate the frame if necessary before processing with
+            # MediaPipe. This ensures the pose estimation model
+            # receives the correct orientation.
+            # -----------------------------------------------------
+            if rotate:
+                frame = cv2.rotate( frame, cv2.ROTATE_90_CLOCKWISE )
 
             # ---------------------------------------------------------
             # Convert to an RGB color-scale (if not already) for 
@@ -288,11 +314,17 @@ class PoseEstimation:
                     )
                 
                 # -----------------------------------------------------
-                # TODO: Calculate whether the frames orientation needs
-                # to be adjusted before writing.
+                # Overlay the Frame Number.
+                # NOTE: THIS IS FOR DEBUGGING PURPOSES ONLY - REMOVE ON
+                # PRODUCTION.
                 # -----------------------------------------------------
-                if rotate:
-                    overlaid = cv2.rotate( overlaid, cv2.ROTATE_90_CLOCKWISE )
+                text      = f"Frame: { frame_idx }"
+                font      = cv2.FONT_HERSHEY_SIMPLEX
+                pos       = ( 50, 50 )
+                scale     = 1.5
+                thickness = 3
+                cv2.putText( overlaid, text, pos, font, scale, ( 0, 0, 0 ), thickness + 2 )
+                cv2.putText( overlaid, text, pos, font, scale, ( 255, 255, 255 ), thickness )
                 
                 # -----------------------------------------------------
                 # Write the adjusted, overlayed frames to output.
@@ -312,9 +344,26 @@ class PoseEstimation:
             ### Interpolate Missing Pose Data Here ###
 
         # -------------------------------------------------------------
-        # Return the frame structure containing the modeled pose data.
+        # Construct the videos metadata.
         # -------------------------------------------------------------
-        return frames
+        metadata = {
+            "width": out_width,
+            "height": out_height,
+            "fps": fps,
+            "num_frames": frame_idx,
+            "rotation_applied": rotate
+        }
+
+        # -------------------------------------------------------------
+        # Construct the full dataset with the video metadata and frame
+        # structure containing the modeled pose data.
+        # -------------------------------------------------------------
+        full_data = {
+            "metadata": metadata,
+            "frames": frames
+        }
+
+        return full_data
 
 # -----------------------------------------------------------------------------
 #                                 EXECUTION 
