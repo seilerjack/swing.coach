@@ -12,6 +12,7 @@ Face-On — Address / Setup (static window)
 | Shoulder tilt              | Angle between shoulders and horizontal              | Scalar            |
 | Hip tilt                   | Angle between hips and horizontal                   | Scalar            |
 | Spine tilt                 | Angle between mid-hips → mid-shoulders and vertical | Scalar            |
+| Stance Width               | Ratio between ankle width and shoulder width        | Ratio             |
 
 Face-On — Motion (entire swing window)
 | Metric Name                | Definition                                          | Signal Type       |
@@ -31,7 +32,7 @@ Primary role: depth, posture, delivery proxies
 Down-the-Line — Address / Setup (static window)
 | Metric Name                | Definition                                          | Signal Type       |
 | ---------------------------| ----------------------------------------------------| ------------------|
-| Spine angle                | Spine vs vertical                                   | Scalar            |
+| Spine tilt                 | Spine vs vertical                                   | Scalar            |
 | Arm hang angle             | Shoulder → wrist angle                              | Scalar            |
 | Forward bend               | Hip → shoulder pitch                                | Scalar            |
 
@@ -60,8 +61,13 @@ GRAND_PARENT_DIR = os.path.dirname( os.path.dirname( os.path.dirname( os.path.ab
 sys.path.append( PARENT_DIR )
 sys.path.append( GRAND_PARENT_DIR )
 
+from fo                             import ( fo_shoulder_tilt,
+                                             fo_hip_tilt,
+                                             fo_stance_width,
+                                             fo_spine_tilt )
 from lib                                    import *
 from typing                                 import Any, Dict
+from swing_analysis_classes.pose_estimation import PoseEstimation
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
@@ -70,6 +76,19 @@ from typing                                 import Any, Dict
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
 # -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# NOTE: CAN EVENTUALLY BE USED TO EASE DICTIONARY LOADING. CAN ALSO BE EDITED
+# TO SUPPORT GRADING BANDS.
+# -----------------------------------------------------------------------------
+def _metric( label, value, units, valid_range, ideal_range ):
+    return {
+        "label": label,
+        "value": value,
+        "units": units,
+        "valid_range": valid_range,
+        "ideal_range": ideal_range
+    }
 
 # -----------------------------------------------------------------------------
 #                                  CLASSES
@@ -175,7 +194,50 @@ class MetricsCalculator:
     # -----------------------------------------------------------------
     def _calculate_face_on_address_metrics( self ) -> Dict[ str, Any ]:
 
-        return { }
+        # jack 169
+        # ryan 94
+        frame  = self.face_on_data[ "frames" ][ 169 ]
+        width  = self.face_on_data[ "metadata" ][ "width" ]
+        height = self.face_on_data[ "metadata" ][ "height" ]
+
+        return {
+
+            # ---------------------------------------------------------
+            # Shoulder Tilt
+            # ---------------------------------------------------------
+            "Shoulder_Tilt": {
+                "label": "Shoulder Tilt",
+                "value": fo_shoulder_tilt( frame, width, height ),
+                "units": "degrees",
+            },
+
+            # ---------------------------------------------------------
+            # Hip Tilt
+            # ---------------------------------------------------------
+            "Hip_Tilt": {
+                "label": "Hip Tilt",
+                "value": fo_hip_tilt( frame, width, height ),
+                "units": "degrees",
+            },
+
+            # ---------------------------------------------------------
+            # Stance Width
+            # ---------------------------------------------------------
+            "Stance_Width": {
+                "label": "Stance Width",
+                "value": fo_stance_width( frame ),
+                "units": "ratio",
+            },
+
+            # ---------------------------------------------------------
+            # Spine Tilt
+            # ---------------------------------------------------------
+            "Spine_Tilt": {
+                "label": "Spine Tilt",
+                "value": fo_spine_tilt( frame, width, height ),
+                "units": "degrees",
+            }
+        }
 
 
     # -----------------------------------------------------------------

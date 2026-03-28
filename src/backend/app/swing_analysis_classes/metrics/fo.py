@@ -3,7 +3,18 @@
 #                                  IMPORTS 
 # -----------------------------------------------------------------------------
 
+import os
+import sys
 import numpy  as np
+
+# ---------------------------------------------------------------------
+# Add the parent and grandparent directories to the system path to
+# allow for relative imports.
+# ---------------------------------------------------------------------
+PARENT_DIR       = os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) )
+GRAND_PARENT_DIR = os.path.dirname( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ) )
+sys.path.append( PARENT_DIR )
+sys.path.append( GRAND_PARENT_DIR )
 
 from   lib    import *
 from   typing import Any, Dict
