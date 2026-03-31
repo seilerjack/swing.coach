@@ -32,7 +32,6 @@ Primary role: depth, posture, delivery proxies
 Down-the-Line — Address / Setup (static window)
 | Metric Name                | Definition                                          | Signal Type       |
 | ---------------------------| ----------------------------------------------------| ------------------|
-| Spine tilt                 | Spine vs vertical                                   | Scalar            |
 | Arm hang angle             | Shoulder → wrist angle                              | Scalar            |
 | Forward bend               | Hip → shoulder pitch                                | Scalar            |
 
@@ -61,10 +60,12 @@ GRAND_PARENT_DIR = os.path.dirname( os.path.dirname( os.path.dirname( os.path.ab
 sys.path.append( PARENT_DIR )
 sys.path.append( GRAND_PARENT_DIR )
 
-from fo                             import ( fo_shoulder_tilt,
-                                             fo_hip_tilt,
-                                             fo_stance_width,
-                                             fo_spine_tilt )
+from swing_analysis_classes.metrics.fo      import ( fo_shoulder_tilt,
+                                                     fo_hip_tilt,
+                                                     fo_stance_width,
+                                                     fo_spine_tilt )
+from swing_analysis_classes.metrics.dtl     import ( dtl_forward_bend,
+                                                     dtl_arm_hang_angle )                 
 from lib                                    import *
 from typing                                 import Any, Dict
 from swing_analysis_classes.pose_estimation import PoseEstimation
@@ -265,7 +266,32 @@ class MetricsCalculator:
     # -----------------------------------------------------------------
     def _calculate_dtl_address_metrics( self ) -> Dict[ str, Any ]:
 
-        return { }
+        # jack 9
+        # ryan 524
+        frame  = self.down_the_line_data[ "frames" ][ 9 ]
+        width  = self.down_the_line_data[ "metadata" ][ "width" ]
+        height = self.down_the_line_data[ "metadata" ][ "height" ]
+
+        return {
+
+            # ---------------------------------------------------------
+            # Forward Bend
+            # ---------------------------------------------------------
+            "Forward_Bend": {
+                "label": "Forward Bend",
+                "value": dtl_forward_bend( frame, width, height ),
+                "units": "degrees",
+            },
+
+            # ---------------------------------------------------------
+            # Arm Hang Angle
+            # ---------------------------------------------------------
+            "Arm_Hang": {
+                "label": "Arm Hang Angle",
+                "value": dtl_arm_hang_angle( frame, width, height ),
+                "units": "degrees",
+            },
+        }
 
 
     # -----------------------------------------------------------------
@@ -285,3 +311,23 @@ class MetricsCalculator:
 # -----------------------------------------------------------------------------
 #                                 EXECUTION 
 # -----------------------------------------------------------------------------
+if __name__ == "__main__":
+    
+    # -------------------------------------------------------------
+    # Extract the pose data from the processed footage.
+    # -------------------------------------------------------------
+    pose_estimator = PoseEstimation(
+        face_on_path = "H:\\GIT\\swing.coach\\test_swings\\r_fo_1.MOV",
+        down_the_line_path = "H:\\GIT\\swing.coach\\test_swings\\test_swing_raw.mp4",
+        temp_dir_path = "H:\\GIT\\swing.coach\\test_swings"
+    )
+
+    # -------------------------------------------------------------
+    # Perform metrics calculations based on the extracted pose data.
+    # -------------------------------------------------------------
+    metrics_calculator = MetricsCalculator(
+        face_on_data = pose_estimator.face_on_data,
+        down_the_line_data = pose_estimator.down_the_line_data
+    )
+
+    print( metrics_calculator.metrics )
