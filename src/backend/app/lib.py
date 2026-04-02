@@ -101,6 +101,38 @@ def get_image_point(
     return np.array( [ lm[ "x" ], lm[ "y" ], lm[ "z" ] ], dtype = np.float64 )
 
 
+# ---------------------------------------------------------
+# 
+#   PROCEDURE NAME: get_world_point
+#
+#   DESCRIPTION:
+#       Grabs the coordinates of a given landmark in world
+#       space for a given frame.
+#
+# ---------------------------------------------------------
+def get_world_point(
+        frame: Dict[ str, Any ],
+        name: str
+    ) -> npt.NDArray[ np.float64 ] | None:
+
+    # -----------------------------------------------------
+    # Access landmark dictionary and convert to NumPy
+    # array.
+    # -----------------------------------------------------
+    lm = frame[ "landmarks" ][ name ][ "world" ]
+
+    # -----------------------------------------------------
+    # If the landmark is marked as invalid, return None.
+    # -----------------------------------------------------
+    if frame[ "landmarks" ][ name ][ "valid" ] is False:
+        return None
+    
+    # -----------------------------------------------------
+    # Return landmark coordinates in world space.
+    # -----------------------------------------------------
+    return np.array( [ lm[ "x" ], lm[ "y" ], lm[ "z" ] ], dtype = np.float64 )
+
+
 
 # -----------------------------------------------------------------------------
 #                                  CLASSES

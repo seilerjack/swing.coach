@@ -63,7 +63,8 @@ sys.path.append( GRAND_PARENT_DIR )
 from swing_analysis_classes.metrics.fo      import ( fo_shoulder_tilt,
                                                      fo_hip_tilt,
                                                      fo_stance_width,
-                                                     fo_spine_tilt )
+                                                     fo_spine_tilt,
+                                                     fo_hip_rotation_range )
 from swing_analysis_classes.metrics.dtl     import ( dtl_forward_bend,
                                                      dtl_arm_hang_angle )                 
 from lib                                    import *
@@ -252,7 +253,23 @@ class MetricsCalculator:
     # -----------------------------------------------------------------
     def _calculate_face_on_motion_metrics( self ) -> Dict[ str, Any ]:
 
-        return { }
+        # jack address 169, top 203
+        # ryan 524
+        frame  = self.face_on_data[ "frames" ][ 169 ]
+        width  = self.face_on_data[ "metadata" ][ "width" ]
+        height = self.face_on_data[ "metadata" ][ "height" ]
+
+        return {
+
+            # ---------------------------------------------------------
+            # Forward Bend
+            # ---------------------------------------------------------
+            "Max_Hip_Rotation": {
+                "label": "Max Hip Rotation",
+                "value": fo_hip_rotation_range( self.face_on_data[ "frames" ], 169, 203 ),
+                "units": "degrees",
+            },
+        }
 
 
     # -----------------------------------------------------------------
@@ -317,7 +334,7 @@ if __name__ == "__main__":
     # Extract the pose data from the processed footage.
     # -------------------------------------------------------------
     pose_estimator = PoseEstimation(
-        face_on_path = "H:\\GIT\\swing.coach\\test_swings\\r_fo_1.MOV",
+        face_on_path = "H:\\GIT\\swing.coach\\test_swings\\j_fo_2.MOV",
         down_the_line_path = "H:\\GIT\\swing.coach\\test_swings\\test_swing_raw.mp4",
         temp_dir_path = "H:\\GIT\\swing.coach\\test_swings"
     )

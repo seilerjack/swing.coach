@@ -129,6 +129,41 @@ def _midpoint( p1, p2 ):
         ( p1[ 1 ] + p2[ 1 ] ) / 2
     )
 
+
+# -----------------------------------------------------------------
+#
+#   PROCEDURE NAME: _hip_width
+#
+#   DESCRIPTION:
+#       Returns the static hip width at a given frame.
+#
+#   NOTE: This is used as a reference measurement for reintroducing
+#         hip rotation angle estimation using only world
+#         coordinates.
+#
+# -----------------------------------------------------------------
+def _hip_width( frame: Dict[ str, Any ] ) -> float | None:
+
+    # -------------------------------------------------------------
+    # Retrieve hip landmarks.
+    # -------------------------------------------------------------
+    l_h = get_world_point( frame, "LEFT_HIP" )
+    r_h = get_world_point( frame, "RIGHT_HIP" )
+
+    # -------------------------------------------------------------
+    # If the hip landmarks are present and valid, continue.
+    # -------------------------------------------------------------
+    if ( l_h is None or r_h is None ) \
+    or ( not l_h.all() or not r_h.all() ):
+        return None
+
+    # -------------------------------------------------------------
+    # Return the distance between the left and right hip x
+    # coordinates.
+    # -------------------------------------------------------------
+    return abs( r_h[ 0 ] - l_h[ 0 ] )
+
+
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
 # -----------------------------------------------------------------------------
@@ -291,6 +326,56 @@ def fo_spine_tilt(
     spine_vec = np.array( [ dx, dy ] )
 
     return _angle_to_vertical( spine_vec )
+
+
+# -----------------------------------------------------------------
+#
+#   PROCEDURE NAME: _fo_hip_rotation_angle_world
+#
+#   DESCRIPTION:
+#       Computes hip rotation angle (face-on) using world coords.
+#       Measures angle of hip line projected onto X-Z plane.
+#
+#   NOTE: This uses the hip width to reintroduce hip rotation using
+#         only world coordinates.
+#
+# -----------------------------------------------------------------
+def fo_hip_rotation_range(
+        frames: list[ Dict[ str, Any ] ],
+        address_idx: int,
+        top_idx: int
+    ) -> float | None:
+
+    # -------------------------------------------------------------
+    # Retrieve the hip width at both address and top.
+    # -------------------------------------------------------------
+    w0 = _hip_width( frames[ address_idx ] )
+    w1 = _hip_width( frames[ top_idx ] )
+
+    # -------------------------------------------------------------
+    # Ensure hip widths are valid and non zero to protect divide by
+    # zero before continuing.
+    # -------------------------------------------------------------
+    if not w0 or not w1 or w0 < 1e-6:
+        return None
+
+    # -------------------------------------------------------------
+    # Clamp for safety in case of numerical issues with very small
+    # hip widths.
+    # -------------------------------------------------------------
+    ratio = np.clip( w1 / w0, -1.0, 1.0 )
+
+    # -------------------------------------------------------------
+    # Turn the ratio of hip widths into an angle using arccos. The
+    # ratio of hip widths corresponds to the cosine of the hip
+    # rotation angle, since as the hips rotate away from the
+    # camera, the apparent width decreases. We take the arccosine 
+    # to get the angle in radians, then convert to degrees.
+    # -------------------------------------------------------------
+    angle = np.degrees( np.arccos( ratio ) )
+
+    return angle
+
 
 
 # -----------------------------------------------------------------------------
