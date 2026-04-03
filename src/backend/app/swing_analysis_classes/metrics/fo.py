@@ -16,8 +16,8 @@ GRAND_PARENT_DIR = os.path.dirname( os.path.dirname( os.path.dirname( os.path.ab
 sys.path.append( PARENT_DIR )
 sys.path.append( GRAND_PARENT_DIR )
 
-from   lib    import *
-from   typing import Any, Dict
+from   lib                                import *
+from   typing                             import Any, Dict
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
@@ -26,143 +26,6 @@ from   typing import Any, Dict
 # -----------------------------------------------------------------------------
 #                                 HELPERS
 # -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------
-#
-#   PROCEDURE NAME: _angle_to_horizontal
-#
-#   DESCRIPTION:
-#       Returns the smallest angle (degrees) between a line defined
-#       by two points and the horizontal axis.
-#
-# -----------------------------------------------------------------
-def _angle_to_horizontal( p1, p2 ) -> float:
-
-    # -------------------------------------------------------------
-    # Extract the x and y components of the slope.
-    # -------------------------------------------------------------
-    dx = p2[ 0 ] - p1[ 0 ]
-    dy = p2[ 1 ] - p1[ 1 ]
-
-    # -------------------------------------------------------------
-    # Convert to degrees after taking the arctangent of the
-    # slope. We take the absolute value since we don't care
-    # about the direction, only the magnitude.
-    # -------------------------------------------------------------
-    angle = abs( np.degrees( np.arctan2( dy, dx ) ) )
-
-    # -------------------------------------------------------------
-    # Convert to the smallest equivalent angle relative to
-    # vertical. This ensures the result is always in [0, 90]
-    # degrees, since we only care about magnitude of tilt, not
-    # direction.
-    # -------------------------------------------------------------
-    if angle > 90:
-        angle = 180 - angle
-
-    return angle
-
-
-# -----------------------------------------------------------------
-#
-#   PROCEDURE NAME: _angle_to_vertical
-#
-#   DESCRIPTION:
-#       Returns the smallest angle (degrees) between a vector and
-#       the vertical axis.
-#
-# -----------------------------------------------------------------
-def _angle_to_vertical( vec ) -> float:
-
-    # -------------------------------------------------------------
-    # Normalize the input vector to unit length. This ensures that
-    # the magnitude of the vector does not affect the angle
-    # calculation, only its direction.
-    # -------------------------------------------------------------
-    vec = vec / np.linalg.norm( vec )
-
-    # -------------------------------------------------------------
-    # Define the vertical axis in image space.
-    # NOTE: In OpenCV/image coordinates, the origin is top-left and
-    # the Y-axis increases downward. Therefore, "up" is (0, -1).
-    # -------------------------------------------------------------
-    vertical = np.array( [ 0.0, -1.0 ] )
-
-    # -------------------------------------------------------------
-    # Compute the dot product between the normalized vector and the
-    # vertical axis. This gives the cosine of the angle between
-    # them. Clamp the result to [-1, 1] to avoid numerical issues
-    # with arccos due to floating point precision.
-    # -------------------------------------------------------------
-    dot = np.clip( np.dot( vec, vertical ), -1.0, 1.0 )
-
-    # -------------------------------------------------------------
-    # Convert the arccosine of the dot product into degrees.
-    # This gives the angle between the vector and vertical axis.
-    # -------------------------------------------------------------
-    angle = np.degrees( np.arccos( dot ) )
-
-    # -------------------------------------------------------------
-    # Convert to the smallest equivalent angle relative to
-    # vertical. This ensures the result is always in [0, 90]
-    # degrees, since we only care about magnitude of tilt, not
-    # direction.
-    # -------------------------------------------------------------
-    if angle > 90:
-        angle = 180 - angle
-
-    return angle
-
-
-# -----------------------------------------------------------------
-#
-#   PROCEDURE NAME: _midpoint
-#
-#   DESCRIPTION:
-#       Returns midpoint between two points.
-#
-# -----------------------------------------------------------------
-def _midpoint( p1, p2 ):
-
-    return (
-        ( p1[ 0 ] + p2[ 0 ] ) / 2,
-        ( p1[ 1 ] + p2[ 1 ] ) / 2
-    )
-
-
-# -----------------------------------------------------------------
-#
-#   PROCEDURE NAME: _hip_width
-#
-#   DESCRIPTION:
-#       Returns the static hip width at a given frame.
-#
-#   NOTE: This is used as a reference measurement for reintroducing
-#         hip rotation angle estimation using only world
-#         coordinates.
-#
-# -----------------------------------------------------------------
-def _hip_width( frame: Dict[ str, Any ] ) -> float | None:
-
-    # -------------------------------------------------------------
-    # Retrieve hip landmarks.
-    # -------------------------------------------------------------
-    l_h = get_world_point( frame, "LEFT_HIP" )
-    r_h = get_world_point( frame, "RIGHT_HIP" )
-
-    # -------------------------------------------------------------
-    # If the hip landmarks are present and valid, continue.
-    # -------------------------------------------------------------
-    if ( l_h is None or r_h is None ) \
-    or ( not l_h.all() or not r_h.all() ):
-        return None
-
-    # -------------------------------------------------------------
-    # Return the distance between the left and right hip x
-    # coordinates.
-    # -------------------------------------------------------------
-    return abs( r_h[ 0 ] - l_h[ 0 ] )
-
 
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
@@ -196,7 +59,7 @@ def fo_shoulder_tilt(
     if l_sh is None or r_sh is None:
         return None
 
-    return _angle_to_horizontal( l_sh, r_sh )
+    return angle_to_horizontal( l_sh, r_sh )
     
 
 # -----------------------------------------------------------------
@@ -227,7 +90,7 @@ def fo_hip_tilt(
     if l_h is None or r_h is None:
         return None
 
-    return _angle_to_horizontal( l_h, r_h )
+    return angle_to_horizontal( l_h, r_h )
 
 
 # -----------------------------------------------------------------
@@ -314,8 +177,8 @@ def fo_spine_tilt(
     # -------------------------------------------------------------
     # Calculate the midpoints for both the shoulders and the hips.
     # -------------------------------------------------------------
-    mid_sh = _midpoint( l_s, r_s )
-    mid_hp = _midpoint( l_h, r_h )
+    mid_sh = midpoint( l_s, r_s )
+    mid_hp = midpoint( l_h, r_h )
 
     # -------------------------------------------------------------
     # Calculate the spine vector.
@@ -325,12 +188,12 @@ def fo_spine_tilt(
 
     spine_vec = np.array( [ dx, dy ] )
 
-    return _angle_to_vertical( spine_vec )
+    return angle_to_vertical( spine_vec )
 
 
 # -----------------------------------------------------------------
 #
-#   PROCEDURE NAME: _fo_hip_rotation_angle_world
+#   PROCEDURE NAME: fo_hip_rotation_range
 #
 #   DESCRIPTION:
 #       Computes hip rotation angle (face-on) using world coords.
@@ -343,14 +206,15 @@ def fo_spine_tilt(
 def fo_hip_rotation_range(
         frames: list[ Dict[ str, Any ] ],
         address_idx: int,
-        top_idx: int
+        top_idx: int,
+        forward_bend: float
     ) -> float | None:
 
     # -------------------------------------------------------------
     # Retrieve the hip width at both address and top.
     # -------------------------------------------------------------
-    w0 = _hip_width( frames[ address_idx ] )
-    w1 = _hip_width( frames[ top_idx ] )
+    w0 = hip_width( frames[ address_idx ] )
+    w1 = hip_width( frames[ top_idx ] )
 
     # -------------------------------------------------------------
     # Ensure hip widths are valid and non zero to protect divide by
@@ -374,8 +238,115 @@ def fo_hip_rotation_range(
     # -------------------------------------------------------------
     angle = np.degrees( np.arccos( ratio ) )
 
-    return angle
+    # -------------------------------------------------------------
+    # Catch bad spine vector and return uncorrected angle if so.
+    # -------------------------------------------------------------
+    if forward_bend is None:
+        return angle
 
+    # -------------------------------------------------------------
+    # Convert to radians for correction.
+    # -------------------------------------------------------------
+    tilt_rad = np.radians( forward_bend )
+
+    # -------------------------------------------------------------
+    # Protect against extreme tilt.
+    # -------------------------------------------------------------
+    cos_tilt = np.cos( tilt_rad )
+
+    # -------------------------------------------------------------
+    # Avoid angle explosion...
+    # -------------------------------------------------------------
+    if abs( cos_tilt ) < 1e-3:
+        return angle
+
+    # -------------------------------------------------------------
+    # Correct and return the hip rotation angle by dividing by the
+    # cosine of the spine tilt.
+    # -------------------------------------------------------------
+    corrected = angle / cos_tilt
+
+    return corrected
+
+
+# -----------------------------------------------------------------
+#
+#   PROCEDURE NAME: fo_shoulder_rotation_range
+#
+#   DESCRIPTION:
+#       Computes shoulder rotation angle (face-on) using world
+#       coords. Measures angle of shoulder line projected onto
+#       X-Z plane.
+#
+#   NOTE: This uses the shoulder width to reintroduce shoulder
+#         rotation using only world coordinates.
+#
+# -----------------------------------------------------------------
+def fo_shoulder_rotation_range(
+        frames: list[ Dict[ str, Any ] ],
+        address_idx: int,
+        top_idx: int,
+        forward_bend: float
+    ) -> float | None:
+
+    # -------------------------------------------------------------
+    # Retrieve the shoulder width at both address and top.
+    # -------------------------------------------------------------
+    w0 = shoulder_width( frames[ address_idx ] )
+    w1 = shoulder_width( frames[ top_idx ] )
+
+    # -------------------------------------------------------------
+    # Ensure shoulder widths are valid and non zero to protect divide by
+    # zero before continuing.
+    # -------------------------------------------------------------
+    if not w0 or not w1 or w0 < 1e-6:
+        return None
+
+    # -------------------------------------------------------------
+    # Clamp for safety in case of numerical issues with very small
+    # hip widths.
+    # -------------------------------------------------------------
+    ratio = np.clip( w1 / w0, -1.0, 1.0 )
+
+    # -------------------------------------------------------------
+    # Turn the ratio of shoulder widths into an angle using arccos.
+    # The ratio of shoulder widths corresponds to the cosine of the
+    # shoulder rotation angle, since as the shoulders rotate away
+    # from the camera, the apparent width decreases. We take the
+    # arccosine to get the angle in radians, then convert to
+    # degrees.
+    # -------------------------------------------------------------
+    angle = np.degrees( np.arccos( ratio ) )
+
+    # -------------------------------------------------------------
+    # Catch bad spine vector and return uncorrected angle if so.
+    # -------------------------------------------------------------
+    if forward_bend is None:
+        return angle
+
+    # -------------------------------------------------------------
+    # Convert to radians for correction.
+    # -------------------------------------------------------------
+    tilt_rad = np.radians( forward_bend )
+
+    # -------------------------------------------------------------
+    # Protect against extreme tilt.
+    # -------------------------------------------------------------
+    cos_tilt = np.cos( tilt_rad )
+
+    # -------------------------------------------------------------
+    # Avoid angle explosion...
+    # -------------------------------------------------------------
+    if abs( cos_tilt ) < 1e-3:
+        return angle
+
+    # -------------------------------------------------------------
+    # Correct and return the hip rotation angle by dividing by the
+    # cosine of the spine tilt.
+    # -------------------------------------------------------------
+    corrected = angle / cos_tilt
+
+    return corrected
 
 
 # -----------------------------------------------------------------------------
