@@ -197,9 +197,8 @@ class MetricsCalculator:
     # -----------------------------------------------------------------
     def _calculate_face_on_address_metrics( self ) -> Dict[ str, Any ]:
 
-        # jack 169
-        # ryan 94
-        frame  = self.face_on_data[ "frames" ][ 169 ]
+        # jack address 33
+        frame  = self.face_on_data[ "frames" ][ 33 ]
         width  = self.face_on_data[ "metadata" ][ "width" ]
         height = self.face_on_data[ "metadata" ][ "height" ]
 
@@ -254,17 +253,80 @@ class MetricsCalculator:
     # -----------------------------------------------------------------
     def _calculate_face_on_motion_metrics( self ) -> Dict[ str, Any ]:
 
+        # -------------------------------------------------------------
+        # REFERENCE FRAME SELECTION:
+        # -------------------------------------------------------------
+        # jack address 33, top 64
         # ryan address 122, top 323
-        frame  = self.face_on_data[ "frames" ][ 122 ]
-        width  = self.face_on_data[ "metadata" ][ "width" ]
-        height = self.face_on_data[ "metadata" ][ "height" ]
+
+        # -------------------------------------------------------------
+        # Reference to address frame. Used to allow consistent angle
+        # delta calculations against the current frame.
+        # -------------------------------------------------------------
+        addr_frame  = self.face_on_data[ "frames" ][ 33 ]
         
-        dtl_frame  = self.down_the_line_data[ "frames" ][ 535 ]
+        # -------------------------------------------------------------
+        # Down the line reference data used for calculating forward
+        # bend. This is so we can tilt correct our rotational metrics.
+        # -------------------------------------------------------------
+        dtl_frame  = self.down_the_line_data[ "frames" ][ 57 ]
         dtl_width  = self.down_the_line_data[ "metadata" ][ "width" ]
         dtl_height = self.down_the_line_data[ "metadata" ][ "height" ]
 
+        # -------------------------------------------------------------
+        # Calculate the forward bend. Used as a correction factor.
+        # -------------------------------------------------------------
         forward_bend = dtl_forward_bend( dtl_frame, dtl_width, dtl_height )
         forward_bend = forward_bend if forward_bend is not None else 0.0
+
+        # -------------------------------------------------------------
+        # Placeholder for hip and shoulder rotation angles across the
+        # swing. 
+        # -------------------------------------------------------------
+        hip_rotation_angles      = []
+        shoulder_rotation_angles = []
+
+        # -------------------------------------------------------------
+        # Iterate through the swing frames from address to the top of
+        # the backswing and calculate the hip and shoulder rotation
+        # angles.
+        # -------------------------------------------------------------
+        for frame in self.face_on_data[ "frames" ][ 33:65 ]:
+
+            # ---------------------------------------------------------
+            # Calculate the hip and shoulder rotation angles relative
+            # to address and tilt corrected for forward bend.
+            # ---------------------------------------------------------
+            hip_rot_angle = fo_hip_rotation_range( addr_frame, frame, forward_bend )
+            hip_rot_angle = hip_rot_angle if hip_rot_angle is not None else 0.0
+
+            shld_rot_angle = fo_shoulder_rotation_range( addr_frame, frame, forward_bend )
+            shld_rot_angle = shld_rot_angle if shld_rot_angle is not None else 0.0
+
+            # ---------------------------------------------------------
+            # Grab the angle delta between the current angle and the
+            # angle from the previous frame.
+            # ---------------------------------------------------------
+            hip_delta      = hip_rot_angle - hip_rotation_angles[ -1 ] if hip_rotation_angles else 0.0
+            shld_rot_delta = shld_rot_angle - shoulder_rotation_angles[ -1 ] if shoulder_rotation_angles else 0.0
+
+            # ---------------------------------------------------------
+            # If the delta exceeds 90 degrees, we likely have an angle
+            # wraparound issue and should flip the angle to the correct
+            # quadrant.
+            # ---------------------------------------------------------
+            if hip_delta > 90:
+                hip_rot_angle = 180 - hip_rot_angle
+
+            if shld_rot_delta > 90:
+                shld_rot_angle = 180 - shld_rot_angle
+
+            # ---------------------------------------------------------
+            # Append the hip and shoulder rotation angles for the
+            # current frame.
+            # ---------------------------------------------------------
+            hip_rotation_angles.append( hip_rot_angle )
+            shoulder_rotation_angles.append( shld_rot_angle )
 
         return {
 
@@ -273,7 +335,7 @@ class MetricsCalculator:
             # ---------------------------------------------------------
             "Max_Hip_Rotation": {
                 "label": "Max Hip Rotation",
-                "value": fo_hip_rotation_range( self.face_on_data[ "frames" ], 122, 323, forward_bend ),
+                "value": max( hip_rotation_angles ) if hip_rotation_angles else 0.0,
                 "units": "degrees",
             },
 
@@ -282,9 +344,18 @@ class MetricsCalculator:
             # ---------------------------------------------------------
             "Max_Shoulder_Rotation": {
                 "label": "Max Shoulder Rotation",
-                "value": fo_shoulder_rotation_range( self.face_on_data[ "frames" ], 122, 323, forward_bend ),
+                "value": max( shoulder_rotation_angles ) if shoulder_rotation_angles else 0.0,
                 "units": "degrees",
             },
+
+            # ---------------------------------------------------------
+            # X-Factor Range
+            # ---------------------------------------------------------
+            "X-Factor_Range": {
+                "label": "X-Factor Range",
+                "value": ( max( shoulder_rotation_angles ) - max( hip_rotation_angles ) ),
+                "units": "degrees",
+            }
         }
 
 
@@ -299,8 +370,9 @@ class MetricsCalculator:
     # -----------------------------------------------------------------
     def _calculate_dtl_address_metrics( self ) -> Dict[ str, Any ]:
 
+        # jack address 57, top 90
         # ryan address 535, top 759
-        frame  = self.down_the_line_data[ "frames" ][ 535 ]
+        frame  = self.down_the_line_data[ "frames" ][ 57 ]
         width  = self.down_the_line_data[ "metadata" ][ "width" ]
         height = self.down_the_line_data[ "metadata" ][ "height" ]
 
@@ -349,8 +421,8 @@ if __name__ == "__main__":
     # Extract the pose data from the processed footage.
     # -------------------------------------------------------------
     pose_estimator = PoseEstimation(
-        face_on_path = "H:\\GIT\\swing.coach\\test_swings\\r_fo_1.MOV",
-        down_the_line_path = "H:\\GIT\\swing.coach\\test_swings\\r_dtl_1.MOV",
+        face_on_path = "H:\\GIT\\swing.coach\\test_swings\\j_fo_4.MOV",
+        down_the_line_path = "H:\\GIT\\swing.coach\\test_swings\\j_dtl_4.MOV",
         temp_dir_path = "H:\\GIT\\swing.coach\\test_swings"
     )
 

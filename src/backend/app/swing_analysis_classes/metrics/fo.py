@@ -204,17 +204,16 @@ def fo_spine_tilt(
 #
 # -----------------------------------------------------------------
 def fo_hip_rotation_range(
-        frames: list[ Dict[ str, Any ] ],
-        address_idx: int,
-        top_idx: int,
+        addr_frame: Dict[ str, Any ],
+        cur_frame: Dict[ str, Any ],
         forward_bend: float
     ) -> float | None:
 
     # -------------------------------------------------------------
     # Retrieve the hip width at both address and top.
     # -------------------------------------------------------------
-    w0 = hip_width( frames[ address_idx ] )
-    w1 = hip_width( frames[ top_idx ] )
+    w0 = hip_width( addr_frame )
+    w1 = hip_width( cur_frame )
 
     # -------------------------------------------------------------
     # Ensure hip widths are valid and non zero to protect divide by
@@ -283,17 +282,16 @@ def fo_hip_rotation_range(
 #
 # -----------------------------------------------------------------
 def fo_shoulder_rotation_range(
-        frames: list[ Dict[ str, Any ] ],
-        address_idx: int,
-        top_idx: int,
+        addr_frame: Dict[ str, Any ],
+        cur_frame: Dict[ str, Any ],
         forward_bend: float
     ) -> float | None:
 
     # -------------------------------------------------------------
     # Retrieve the shoulder width at both address and top.
     # -------------------------------------------------------------
-    w0 = shoulder_width( frames[ address_idx ] )
-    w1 = shoulder_width( frames[ top_idx ] )
+    w0 = shoulder_width( addr_frame )
+    w1 = shoulder_width( cur_frame )
 
     # -------------------------------------------------------------
     # Ensure shoulder widths are valid and non zero to protect divide by
