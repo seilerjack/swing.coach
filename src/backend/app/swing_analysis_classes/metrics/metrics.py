@@ -65,7 +65,8 @@ from swing_analysis_classes.metrics.fo      import ( fo_shoulder_tilt,
                                                      fo_stance_width,
                                                      fo_spine_tilt,
                                                      fo_hip_rotation_range,
-                                                     fo_shoulder_rotation_range )
+                                                     fo_shoulder_rotation_range,
+                                                     fo_head_displacement )
 from swing_analysis_classes.metrics.dtl     import ( dtl_forward_bend,
                                                      dtl_arm_hang_angle )                 
 from lib                                    import *
@@ -264,6 +265,8 @@ class MetricsCalculator:
         # delta calculations against the current frame.
         # -------------------------------------------------------------
         addr_frame  = self.face_on_data[ "frames" ][ 33 ]
+        width = self.face_on_data[ "metadata" ][ "width" ]
+        height = self.face_on_data[ "metadata" ][ "height" ]
         
         # -------------------------------------------------------------
         # Down the line reference data used for calculating forward
@@ -283,8 +286,10 @@ class MetricsCalculator:
         # Placeholder for hip and shoulder rotation angles across the
         # swing. 
         # -------------------------------------------------------------
-        hip_rotation_angles      = []
-        shoulder_rotation_angles = []
+        hip_rotation_angles        = []
+        shoulder_rotation_angles   = []
+        head_lateral_displacement  = []
+        head_vertical_displacement = []
 
         # -------------------------------------------------------------
         # Iterate through the swing frames from address to the top of
@@ -302,6 +307,13 @@ class MetricsCalculator:
 
             shld_rot_angle = fo_shoulder_rotation_range( addr_frame, frame, forward_bend )
             shld_rot_angle = shld_rot_angle if shld_rot_angle is not None else 0.0
+
+            # ---------------------------------------------------------
+            # Calculate the lateral and vertical head displacement
+            # relative to address, normalized by shoulder width.
+            # ---------------------------------------------------------
+            head_disp = fo_head_displacement( addr_frame, frame, width, height )
+            head_disp = head_disp if head_disp is not None else [ 0.0, 0.0 ]
 
             # ---------------------------------------------------------
             # Grab the angle delta between the current angle and the
@@ -327,6 +339,14 @@ class MetricsCalculator:
             # ---------------------------------------------------------
             hip_rotation_angles.append( hip_rot_angle )
             shoulder_rotation_angles.append( shld_rot_angle )
+
+            # ---------------------------------------------------------
+            # Append the head lateral and vertical displacement for the
+            # current frame.
+            # ---------------------------------------------------------
+            head_lateral_displacement.append( head_disp[ 0 ] )
+            head_vertical_displacement.append( head_disp[ 1 ] )
+
 
         return {
 
@@ -355,6 +375,24 @@ class MetricsCalculator:
                 "label": "X-Factor Range",
                 "value": ( max( shoulder_rotation_angles ) - max( hip_rotation_angles ) ),
                 "units": "degrees",
+            },
+
+            # ---------------------------------------------------------
+            # Head Lateral Displacement
+            # ---------------------------------------------------------
+            "Head_Lateral_Displacement": {
+                "label": "Head Lateral Displacement",
+                "value": max( head_lateral_displacement ) - min( head_lateral_displacement ) if head_lateral_displacement else 0.0,
+                "units": "shoulder widths",
+            },
+
+            # ---------------------------------------------------------
+            # Head Vertical Displacement
+            # ---------------------------------------------------------
+            "Head_Vertical_Displacement": {
+                "label": "Head Vertical Displacement",
+                "value": max( head_vertical_displacement ) - min( head_vertical_displacement ) if head_vertical_displacement else 0.0,
+                "units": "shoulder widths",
             }
         }
 

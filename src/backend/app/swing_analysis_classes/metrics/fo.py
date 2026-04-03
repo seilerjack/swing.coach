@@ -168,7 +168,7 @@ def fo_spine_tilt(
     r_h = get_pixel_point( frame, "RIGHT_HIP", width, height )
 
     # -------------------------------------------------------------
-    # If the ankle and shoulder landmarks are present and valid,
+    # If the hip and shoulder landmarks are present and valid,
     # continue.
     # -------------------------------------------------------------
     if l_s is None or r_s is None or l_h is None or r_h is None:
@@ -294,8 +294,8 @@ def fo_shoulder_rotation_range(
     w1 = shoulder_width( cur_frame )
 
     # -------------------------------------------------------------
-    # Ensure shoulder widths are valid and non zero to protect divide by
-    # zero before continuing.
+    # Ensure shoulder widths are valid and non zero to protect
+    # divide by zero before continuing.
     # -------------------------------------------------------------
     if not w0 or not w1 or w0 < 1e-6:
         return None
@@ -345,6 +345,84 @@ def fo_shoulder_rotation_range(
     corrected = angle / cos_tilt
 
     return corrected
+
+
+# -----------------------------------------------------------------
+#
+#   PROCEDURE NAME: fo_head_displacement
+#
+#   DESCRIPTION:
+#       Computes the lateral (horizontal) and vertical head
+#       displacement from address to the current frame using the
+#       NOSE landmark.
+#
+#       Lateral (x):
+#           + → right (trail side for RH)
+#           - → left  (lead side for RH)
+#
+#       Vertical (y):
+#           + → down
+#           - → up
+#
+#       Output is normalized by shoulder width at address to ensure
+#       scale invariance across different video resolutions.
+#
+# -----------------------------------------------------------------
+def fo_head_displacement(
+        addr_frame: Dict[ str, Any ],
+        cur_frame: Dict[ str, Any ],
+        width: int,
+        height: int
+    ) -> Tuple[ float, float ] | None:
+
+    # -------------------------------------------------------------
+    # Retrieve reference head position at address
+    # -------------------------------------------------------------
+    ref = get_pixel_point( addr_frame, "NOSE", width, height )
+
+    if not ref:
+        return None
+
+    # -------------------------------------------------------------
+    # Retrieve shoulder landmarks at address
+    # -------------------------------------------------------------
+    l_sh = get_pixel_point( addr_frame, "LEFT_SHOULDER", width, height )
+    r_sh = get_pixel_point( addr_frame, "RIGHT_SHOULDER", width, height )
+
+    if not l_sh or not r_sh:
+        return None
+
+    # -------------------------------------------------------------
+    # Compute shoulder width (normalization factor)
+    # -------------------------------------------------------------
+    shoulder_width = np.linalg.norm(
+        np.array( [ r_sh[ 0 ] - l_sh[ 0 ], r_sh[ 1 ] - l_sh[ 1 ] ] )
+    )
+
+    if shoulder_width < 1e-6:
+        return None
+
+    # -------------------------------------------------------------
+    # Retrieve current head position
+    # -------------------------------------------------------------
+    pt = get_pixel_point( cur_frame, "NOSE", width, height )
+
+    if not pt:
+        return None
+
+    # -------------------------------------------------------------
+    # Compute signed displacement
+    # -------------------------------------------------------------
+    dx = pt[ 0 ] - ref[ 0 ]
+    dy = pt[ 1 ] - ref[ 1 ]
+
+    # -------------------------------------------------------------
+    # Normalize by shoulder width
+    # -------------------------------------------------------------
+    norm_dx = dx / shoulder_width
+    norm_dy = dy / shoulder_width
+
+    return ( float( norm_dx ), float( norm_dy ) )
 
 
 # -----------------------------------------------------------------------------
