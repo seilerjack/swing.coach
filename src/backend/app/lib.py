@@ -20,13 +20,6 @@ BASE_STORAGE_DIR = Path( tempfile.gettempdir() ) / "swingcoach_storage"
 BASE_STORAGE_DIR.mkdir( exist_ok=True )
 
 
-# ---------------------------------------------------------------------
-# Define reference axes for the mediapipe world coordinate system.
-# ---------------------------------------------------------------------
-VERTICAL_AXIS   = np.array( [ 0.0, 1.0, 0.0 ] )   # Up / down
-HORIZONTAL_AXIS = np.array( [ 1.0, 0.0, 0.0 ] )   # Left / right
-DEPTH_AXIS      = np.array( [ 0.0, 0.0, 1.0 ] )   # Toward / away camera
-
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
 # -----------------------------------------------------------------------------
@@ -381,6 +374,3 @@ class FullData( TypedDict ):
 # -----------------------------------------------------------------------------
 #                                 EXECUTION 
 # -----------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    pass

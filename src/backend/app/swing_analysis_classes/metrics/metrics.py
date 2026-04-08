@@ -1,48 +1,4 @@
 
-"""
-Docstring for backend.app.swing_analysis_classes.metrics
-
-FACE-ON METRICS
-
-Primary role: symmetry, tilt, rotation, lateral motion
-
-Face-On — Address / Setup (static window)
-| Metric Name                | Definition                                          | Signal Type       |
-| ---------------------------| --------------------------------------------------- | ----------------- |
-| Shoulder tilt              | Angle between shoulders and horizontal              | Scalar            |
-| Hip tilt                   | Angle between hips and horizontal                   | Scalar            |
-| Spine tilt                 | Angle between mid-hips → mid-shoulders and vertical | Scalar            |
-| Stance Width               | Ratio between ankle width and shoulder width        | Ratio             |
-
-Face-On — Motion (entire swing window)
-| Metric Name                | Definition                                          | Signal Type       |
-| -------------------------- | ----------------------------------------------------| ------------------|
-| Max shoulder rotation      | Max-min shoulder rotation angle backswing           | Range             |
-| Max hip rotation           | Max-min hip rotation angle backswing                | Range             |
-| X-factor range             | (Shoulder - hip) max delta at top of backswing      | Range             |
-| Head lateral displacement  | Max X - min X                                       | Range             |
-| Head vertical displacement | Max Y - min Y                                       | Range             |
-| Trail knee flex range      | Max - min knee angle between address and backswing  | Range             |
-
-
-DOWN-THE-LINE METRICS
-
-Primary role: depth, posture, delivery proxies
-
-Down-the-Line — Address / Setup (static window)
-| Metric Name                | Definition                                          | Signal Type       |
-| ---------------------------| ----------------------------------------------------| ------------------|
-| Arm hang angle             | Shoulder → wrist angle                              | Scalar            |
-| Forward bend               | Hip → shoulder pitch                                | Scalar            |
-
-Down-the-Line — Motion (entire swing window)
-| Metric Name                | Definition                                          | Signal Type       |
-| ---------------------------| ----------------------------------------------------| ------------------|
-| Shoulder plane stability   | Std dev of shoulder rotation axis                   | Variance          |
-| Trail elbow depth range    | Max Z - min Z                                       | Range             |
-| Pelvis depth stability     | Std dev of hip Z                                    | Variance          |
-
-"""
 
 # -----------------------------------------------------------------------------
 #                                  IMPORTS 
@@ -187,18 +143,29 @@ class MetricsCalculator:
         }
 
 
-    # -----------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------------------------
     #
     #   PROCEDURE NAME: _calculate_face_on_address_metrics
     #
     #   DESCRIPTION:
-    #       Calculates static setup metrics from the predefined
-    #       face-on address frame.
+    #       Calculates static setup metrics from the predefined face-on address frame.
     #
-    # -----------------------------------------------------------------
+    #       Face-On — Address / Setup (static window)
+    #       | Metric Name                | Definition                                          | Signal Type       |
+    #       | ---------------------------| --------------------------------------------------- | ----------------- |
+    #       | Shoulder tilt              | Angle between shoulders and horizontal              | Scalar            |
+    #       | Hip tilt                   | Angle between hips and horizontal                   | Scalar            |
+    #       | Spine tilt                 | Angle between mid-hips → mid-shoulders and vertical | Scalar            |
+    #       | Stance Width               | Ratio between ankle width and shoulder width        | Ratio             |
+    #
+    # ---------------------------------------------------------------------------------------------------------------
     def _calculate_face_on_address_metrics( self ) -> Dict[ str, Any ]:
 
+        # -------------------------------------------------------------
+        # REFERENCE FRAME SELECTION:
+        # -------------------------------------------------------------
         # jack address 33
+        # ryan address 122
         frame  = self.face_on_data[ "frames" ][ 33 ]
         width  = self.face_on_data[ "metadata" ][ "width" ]
         height = self.face_on_data[ "metadata" ][ "height" ]
@@ -224,40 +191,48 @@ class MetricsCalculator:
             },
 
             # ---------------------------------------------------------
-            # Stance Width
-            # ---------------------------------------------------------
-            "Stance_Width": {
-                "label": "Stance Width",
-                "value": fo_stance_width( frame ),
-                "units": "ratio",
-            },
-
-            # ---------------------------------------------------------
             # Spine Tilt
             # ---------------------------------------------------------
             "Spine_Tilt": {
                 "label": "Spine Tilt",
                 "value": fo_spine_tilt( frame, width, height ),
                 "units": "degrees",
+            },
+
+            # ---------------------------------------------------------
+            # Stance Width
+            # ---------------------------------------------------------
+            "Stance_Width": {
+                "label": "Stance Width",
+                "value": fo_stance_width( frame ),
+                "units": "ratio",
             }
         }
 
 
-    # -----------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------------------------
     #
     #   PROCEDURE NAME: _calculate_face_on_motion_metrics
     #
     #   DESCRIPTION:
-    #       Calculates dynamic motion metrics across the entire
-    #       face-on swing window.
+    #       Calculates dynamic motion metrics across the entire face-on swing window.
     #
-    # -----------------------------------------------------------------
+    #       Face-On — Motion (entire swing window)
+    #       | Metric Name                | Definition                                          | Signal Type       |
+    #       | -------------------------- | ----------------------------------------------------| ------------------|
+    #       | Max hip rotation           | Max-min hip rotation angle backswing                | Range             |
+    #       | Max shoulder rotation      | Max-min shoulder rotation angle backswing           | Range             |
+    #       | X-factor range             | (Shoulder - hip) max delta at top of backswing      | Range             |
+    #       | Head lateral displacement  | Max X - min X                                       | Range             |
+    #       | Head vertical displacement | Max Y - min Y                                       | Range             |
+    #
+    # ---------------------------------------------------------------------------------------------------------------
     def _calculate_face_on_motion_metrics( self ) -> Dict[ str, Any ]:
 
         # -------------------------------------------------------------
         # REFERENCE FRAME SELECTION:
         # -------------------------------------------------------------
-        # jack address 33, top 64
+        # jack address 33, top 65
         # ryan address 122, top 323
 
         # -------------------------------------------------------------
@@ -265,8 +240,8 @@ class MetricsCalculator:
         # delta calculations against the current frame.
         # -------------------------------------------------------------
         addr_frame  = self.face_on_data[ "frames" ][ 33 ]
-        width = self.face_on_data[ "metadata" ][ "width" ]
-        height = self.face_on_data[ "metadata" ][ "height" ]
+        width       = self.face_on_data[ "metadata" ][ "width" ]
+        height      = self.face_on_data[ "metadata" ][ "height" ]
         
         # -------------------------------------------------------------
         # Down the line reference data used for calculating forward
@@ -309,13 +284,6 @@ class MetricsCalculator:
             shld_rot_angle = shld_rot_angle if shld_rot_angle is not None else 0.0
 
             # ---------------------------------------------------------
-            # Calculate the lateral and vertical head displacement
-            # relative to address, normalized by shoulder width.
-            # ---------------------------------------------------------
-            head_disp = fo_head_displacement( addr_frame, frame, width, height )
-            head_disp = head_disp if head_disp is not None else [ 0.0, 0.0 ]
-
-            # ---------------------------------------------------------
             # Grab the angle delta between the current angle and the
             # angle from the previous frame.
             # ---------------------------------------------------------
@@ -341,12 +309,18 @@ class MetricsCalculator:
             shoulder_rotation_angles.append( shld_rot_angle )
 
             # ---------------------------------------------------------
+            # Calculate the lateral and vertical head displacement
+            # relative to address, normalized by shoulder width.
+            # ---------------------------------------------------------
+            head_disp = fo_head_displacement( addr_frame, frame, width, height )
+            head_disp = head_disp if head_disp is not None else [ 0.0, 0.0 ]
+
+            # ---------------------------------------------------------
             # Append the head lateral and vertical displacement for the
             # current frame.
             # ---------------------------------------------------------
             head_lateral_displacement.append( head_disp[ 0 ] )
             head_vertical_displacement.append( head_disp[ 1 ] )
-
 
         return {
 
@@ -373,7 +347,7 @@ class MetricsCalculator:
             # ---------------------------------------------------------
             "X-Factor_Range": {
                 "label": "X-Factor Range",
-                "value": ( max( shoulder_rotation_angles ) - max( hip_rotation_angles ) ),
+                "value": ( max( shoulder_rotation_angles ) - max( hip_rotation_angles ) ) if shoulder_rotation_angles and hip_rotation_angles else 0.0,
                 "units": "degrees",
             },
 
@@ -382,7 +356,7 @@ class MetricsCalculator:
             # ---------------------------------------------------------
             "Head_Lateral_Displacement": {
                 "label": "Head Lateral Displacement",
-                "value": max( head_lateral_displacement ) - min( head_lateral_displacement ) if head_lateral_displacement else 0.0,
+                "value": ( max( head_lateral_displacement ) - min( head_lateral_displacement ) ) if head_lateral_displacement else 0.0,
                 "units": "shoulder widths",
             },
 
@@ -391,23 +365,31 @@ class MetricsCalculator:
             # ---------------------------------------------------------
             "Head_Vertical_Displacement": {
                 "label": "Head Vertical Displacement",
-                "value": max( head_vertical_displacement ) - min( head_vertical_displacement ) if head_vertical_displacement else 0.0,
+                "value": ( max( head_vertical_displacement ) - min( head_vertical_displacement ) ) if head_vertical_displacement else 0.0,
                 "units": "shoulder widths",
             }
         }
 
 
-    # -----------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------------------------
     #
     #   PROCEDURE NAME: _calculate_dtl_address_metrics
     #
     #   DESCRIPTION:
-    #       Calculates static setup metrics from the predefined
-    #       down-the-line address frame.
+    #       Calculates static setup metrics from the predefined down-the-line address frame.
     #
-    # -----------------------------------------------------------------
+    #       Down-the-Line — Address / Setup (static window)
+    #       | Metric Name                | Definition                                          | Signal Type       |
+    #       | ---------------------------| ----------------------------------------------------| ------------------|
+    #       | Forward bend               | Hip → shoulder pitch                                | Scalar            |
+    #       | Arm hang angle             | Shoulder → wrist angle                              | Scalar            |
+    #
+    # ---------------------------------------------------------------------------------------------------------------
     def _calculate_dtl_address_metrics( self ) -> Dict[ str, Any ]:
 
+        # -------------------------------------------------------------
+        # REFERENCE FRAME SELECTION:
+        # -------------------------------------------------------------
         # jack address 57, top 90
         # ryan address 535, top 759
         frame  = self.down_the_line_data[ "frames" ][ 57 ]
@@ -436,15 +418,20 @@ class MetricsCalculator:
         }
 
 
-    # -----------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------------------------------
     #
     #   PROCEDURE NAME: _calculate_dtl_motion_metrics
     #
     #   DESCRIPTION:
-    #       Calculates dynamic motion metrics across the entire
-    #       down-the-line swing window.
+    #       Calculates dynamic motion metrics across the entire down-the-line swing window.
     #
-    # -----------------------------------------------------------------
+    #       Down-the-Line — Motion (entire swing window)
+    #       | Metric Name                | Definition                                          | Signal Type       |
+    #       | ---------------------------| ----------------------------------------------------| ------------------|
+    #       | Shoulder plane stability   | Std dev of shoulder rotation axis                   | Variance          |
+    #       | Pelvis depth stability     | Std dev of hip Z                                    | Variance          |
+    #
+    # ---------------------------------------------------------------------------------------------------------------
     def _calculate_dtl_motion_metrics( self ) -> Dict[ str, Any ]:
 
         return { }
