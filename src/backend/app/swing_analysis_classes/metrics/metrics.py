@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os
+import statistics
 import sys
 
 # ---------------------------------------------------------------------
@@ -24,9 +25,12 @@ from swing_analysis_classes.metrics.fo      import ( fo_shoulder_tilt,
                                                      fo_shoulder_rotation_range,
                                                      fo_head_displacement )
 from swing_analysis_classes.metrics.dtl     import ( dtl_forward_bend,
-                                                     dtl_arm_hang_angle )                 
+                                                     dtl_arm_hang_angle,
+                                                     dtl_shoulder_rotation_depth,
+                                                     dtl_pelvis_depth )                 
 from lib                                    import *
 from typing                                 import Any, Dict
+from scipy                                  import stats
 from swing_analysis_classes.pose_estimation import PoseEstimation
 
 # -----------------------------------------------------------------------------
@@ -392,6 +396,11 @@ class MetricsCalculator:
         # -------------------------------------------------------------
         # jack address 57, top 90
         # ryan address 535, top 759
+
+        # -------------------------------------------------------------
+        # Reference to address frame. Used to allow consistent angle
+        # delta calculations against the current frame.
+        # -------------------------------------------------------------
         frame  = self.down_the_line_data[ "frames" ][ 57 ]
         width  = self.down_the_line_data[ "metadata" ][ "width" ]
         height = self.down_the_line_data[ "metadata" ][ "height" ]
@@ -434,7 +443,94 @@ class MetricsCalculator:
     # ---------------------------------------------------------------------------------------------------------------
     def _calculate_dtl_motion_metrics( self ) -> Dict[ str, Any ]:
 
-        return { }
+        # -------------------------------------------------------------
+        # REFERENCE FRAME SELECTION:
+        # -------------------------------------------------------------
+        # jack address 57, top 90
+        # ryan address 535, top 759
+
+        # -------------------------------------------------------------
+        # Reference to address frame. Used to allow consistent angle
+        # delta calculations against the current frame.
+        # -------------------------------------------------------------
+        addr_frame = self.down_the_line_data[ "frames" ][ 57 ]
+        width      = self.down_the_line_data[ "metadata" ][ "width" ]
+        height     = self.down_the_line_data[ "metadata" ][ "height" ]
+
+        # -------------------------------------------------------------
+        # Calculate the forward bend. Used as a correction factor.
+        # -------------------------------------------------------------
+        forward_bend = dtl_forward_bend( addr_frame, width, height )
+        forward_bend = forward_bend if forward_bend is not None else 0.0
+
+        # -------------------------------------------------------------
+        # Placeholder for hip and shoulder rotation angles across the
+        # swing. 
+        # -------------------------------------------------------------
+        shoulder_plane_angles = []
+        pelvis_depth_values   = []
+
+        # -------------------------------------------------------------
+        # Iterate through the swing frames from address to the top of
+        # the backswing and calculate the hip and shoulder rotation
+        # angles.
+        # -------------------------------------------------------------
+        for frame in self.down_the_line_data[ "frames" ][ 57:90 ]:
+            
+            # ---------------------------------------------------------
+            # Calculate the shoulder plane angle for the current frame.
+            # ---------------------------------------------------------
+            shld_plane_angle = dtl_shoulder_rotation_depth( addr_frame, frame, forward_bend )
+            shld_plane_angle = shld_plane_angle if shld_plane_angle is not None else 0.0
+
+            # ---------------------------------------------------------
+            # Grab the angle delta between the current angle and the
+            # angle from the previous frame.
+            # ---------------------------------------------------------
+            shld_plane_delta = shld_plane_angle - shoulder_plane_angles[ -1 ] if shoulder_plane_angles else 0.0
+
+            # ---------------------------------------------------------
+            # If the delta exceeds 90 degrees, we likely have an angle
+            # wraparound issue and should flip the angle to the correct
+            # quadrant.
+            # ---------------------------------------------------------
+            if shld_plane_delta > 90:
+                shld_plane_angle = 180 - shld_plane_angle
+
+            # ---------------------------------------------------------
+            # Append the shoulder plane angle for the current frame.
+            # ---------------------------------------------------------
+            shoulder_plane_angles.append( shld_plane_angle )
+
+            # ---------------------------------------------------------
+            # Calculate the pelvic depth value for the current frame,
+            # and append to the list of values.
+            # ---------------------------------------------------------
+            depth = dtl_pelvis_depth( frame )
+
+            if depth is not None:
+                pelvis_depth_values.append( depth )
+
+        return { 
+
+            # ---------------------------------------------------------
+            # Shoulder Plane Stability
+            # ---------------------------------------------------------
+            "Shoulder_Plane_Stability": {
+                "label": "Shoulder Plane Stability",
+                "value": stats.circstd( shoulder_plane_angles, high=180, low=-180 ) if shoulder_plane_angles else 0.0,
+                "units": "degrees",
+            },
+
+            # ---------------------------------------------------------
+            # Pelvis Depth Stability
+            # ---------------------------------------------------------
+            "Pelvis_Depth_Stability": {
+                "label": "Pelvis Depth Stability",
+                "value": statistics.stdev( pelvis_depth_values ) if len( pelvis_depth_values ) > 1 else 0.0,
+                "units": "meters",
+            }
+        }
 
 
 # -----------------------------------------------------------------------------
