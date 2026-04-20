@@ -31,7 +31,7 @@ from swing_analysis_classes.metrics.dtl     import ( dtl_forward_bend,
 from lib                                    import *
 from typing                                 import Any, Dict
 from scipy                                  import stats
-from swing_analysis_classes.pose_estimation import PoseEstimation
+from swing_analysis_classes.segmentation    import Segmentation
 
 # -----------------------------------------------------------------------------
 #                                 CONSTANTS
@@ -40,6 +40,16 @@ from swing_analysis_classes.pose_estimation import PoseEstimation
 # -----------------------------------------------------------------------------
 #                                 PROCEDURES
 # -----------------------------------------------------------------------------
+
+def frame_idx_to_array_idx( frames, target_frame_index ) -> int:
+    """
+    Maps a frame_index value to its corresponding position
+    in the frames array.
+    """
+    for i, f in enumerate( frames ):
+        if f[ "frame_index" ] == target_frame_index:
+            return i
+    return 0
 
 # -----------------------------------------------------------------------------
 # NOTE: CAN EVENTUALLY BE USED TO EASE DICTIONARY LOADING. CAN ALSO BE EDITED
@@ -82,6 +92,16 @@ class MetricsCalculator:
         # -------------------------------------------------------------        
         self.face_on_data       = face_on_data
         self.down_the_line_data = down_the_line_data
+
+        # -------------------------------------------------------------
+        # Run segmentation to obtain swing phase indices
+        # -------------------------------------------------------------
+        self.segmentation = Segmentation(
+            face_on_data       = self.face_on_data[ "frames" ],
+            down_the_line_data = self.down_the_line_data[ "frames" ]
+        )
+
+        self.segments = self.segmentation.segments
 
         # -------------------------------------------------------------
         # Initialize the metrics dictionary.
@@ -168,9 +188,14 @@ class MetricsCalculator:
         # -------------------------------------------------------------
         # REFERENCE FRAME SELECTION:
         # -------------------------------------------------------------
-        # jack address 33
-        # ryan address 122
-        frame  = self.face_on_data[ "frames" ][ 33 ]
+        frames = self.face_on_data[ "frames" ]
+
+        addr_idx = frame_idx_to_array_idx(
+            frames,
+            self.segments[ "face_on" ][ "address" ]
+        )
+
+        frame = frames[ addr_idx ]
         width  = self.face_on_data[ "metadata" ][ "width" ]
         height = self.face_on_data[ "metadata" ][ "height" ]
 
@@ -236,22 +261,27 @@ class MetricsCalculator:
         # -------------------------------------------------------------
         # REFERENCE FRAME SELECTION:
         # -------------------------------------------------------------
-        # jack address 33, top 65
-        # ryan address 122, top 323
+        frames = self.face_on_data[ "frames" ]
 
-        # -------------------------------------------------------------
-        # Reference to address frame. Used to allow consistent angle
-        # delta calculations against the current frame.
-        # -------------------------------------------------------------
-        addr_frame  = self.face_on_data[ "frames" ][ 33 ]
-        width       = self.face_on_data[ "metadata" ][ "width" ]
-        height      = self.face_on_data[ "metadata" ][ "height" ]
+        addr_idx = frame_idx_to_array_idx(
+            frames,
+            self.segments[ "face_on" ][ "address" ]
+        )
+
+        top_idx = frame_idx_to_array_idx(
+            frames,
+            self.segments[ "face_on" ][ "top_of_backswing" ]
+        )
+
+        frame  = frames[ addr_idx ]
+        width  = self.face_on_data[ "metadata" ][ "width" ]
+        height = self.face_on_data[ "metadata" ][ "height" ]
         
         # -------------------------------------------------------------
         # Down the line reference data used for calculating forward
         # bend. This is so we can tilt correct our rotational metrics.
         # -------------------------------------------------------------
-        dtl_frame  = self.down_the_line_data[ "frames" ][ 57 ]
+        dtl_frame  = self.down_the_line_data[ "frames" ][ 535 ]
         dtl_width  = self.down_the_line_data[ "metadata" ][ "width" ]
         dtl_height = self.down_the_line_data[ "metadata" ][ "height" ]
 
@@ -275,16 +305,16 @@ class MetricsCalculator:
         # the backswing and calculate the hip and shoulder rotation
         # angles.
         # -------------------------------------------------------------
-        for frame in self.face_on_data[ "frames" ][ 33:65 ]:
+        for frame in self.face_on_data[ "frames" ][ addr_idx:top_idx ]:
 
             # ---------------------------------------------------------
             # Calculate the hip and shoulder rotation angles relative
             # to address and tilt corrected for forward bend.
             # ---------------------------------------------------------
-            hip_rot_angle = fo_hip_rotation_range( addr_frame, frame, forward_bend )
+            hip_rot_angle = fo_hip_rotation_range( frame, frame, forward_bend )
             hip_rot_angle = hip_rot_angle if hip_rot_angle is not None else 0.0
 
-            shld_rot_angle = fo_shoulder_rotation_range( addr_frame, frame, forward_bend )
+            shld_rot_angle = fo_shoulder_rotation_range( frame, frame, forward_bend )
             shld_rot_angle = shld_rot_angle if shld_rot_angle is not None else 0.0
 
             # ---------------------------------------------------------
@@ -316,7 +346,7 @@ class MetricsCalculator:
             # Calculate the lateral and vertical head displacement
             # relative to address, normalized by shoulder width.
             # ---------------------------------------------------------
-            head_disp = fo_head_displacement( addr_frame, frame, width, height )
+            head_disp = fo_head_displacement( frame, frame, width, height )
             head_disp = head_disp if head_disp is not None else [ 0.0, 0.0 ]
 
             # ---------------------------------------------------------
@@ -394,14 +424,14 @@ class MetricsCalculator:
         # -------------------------------------------------------------
         # REFERENCE FRAME SELECTION:
         # -------------------------------------------------------------
-        # jack address 57, top 90
-        # ryan address 535, top 759
+        frames = self.down_the_line_data[ "frames" ]
 
-        # -------------------------------------------------------------
-        # Reference to address frame. Used to allow consistent angle
-        # delta calculations against the current frame.
-        # -------------------------------------------------------------
-        frame  = self.down_the_line_data[ "frames" ][ 57 ]
+        addr_idx = frame_idx_to_array_idx(
+            frames,
+            self.segments[ "down_the_line" ][ "address" ]
+        )
+
+        frame  = frames[ addr_idx ]
         width  = self.down_the_line_data[ "metadata" ][ "width" ]
         height = self.down_the_line_data[ "metadata" ][ "height" ]
 
@@ -446,21 +476,26 @@ class MetricsCalculator:
         # -------------------------------------------------------------
         # REFERENCE FRAME SELECTION:
         # -------------------------------------------------------------
-        # jack address 57, top 90
-        # ryan address 535, top 759
+        frames = self.down_the_line_data[ "frames" ]
 
-        # -------------------------------------------------------------
-        # Reference to address frame. Used to allow consistent angle
-        # delta calculations against the current frame.
-        # -------------------------------------------------------------
-        addr_frame = self.down_the_line_data[ "frames" ][ 57 ]
-        width      = self.down_the_line_data[ "metadata" ][ "width" ]
-        height     = self.down_the_line_data[ "metadata" ][ "height" ]
+        addr_idx = frame_idx_to_array_idx(
+            frames,
+            self.segments[ "down_the_line" ][ "address" ]
+        )
+
+        top_idx = frame_idx_to_array_idx(
+            frames,
+            self.segments[ "down_the_line" ][ "top_of_backswing" ]
+        )
+
+        frame  = frames[ addr_idx ]
+        width  = self.down_the_line_data[ "metadata" ][ "width" ]
+        height = self.down_the_line_data[ "metadata" ][ "height" ]
 
         # -------------------------------------------------------------
         # Calculate the forward bend. Used as a correction factor.
         # -------------------------------------------------------------
-        forward_bend = dtl_forward_bend( addr_frame, width, height )
+        forward_bend = dtl_forward_bend( frame, width, height )
         forward_bend = forward_bend if forward_bend is not None else 0.0
 
         # -------------------------------------------------------------
@@ -475,12 +510,12 @@ class MetricsCalculator:
         # the backswing and calculate the hip and shoulder rotation
         # angles.
         # -------------------------------------------------------------
-        for frame in self.down_the_line_data[ "frames" ][ 57:90 ]:
+        for frame in self.down_the_line_data[ "frames" ][ addr_idx:top_idx ]:
             
             # ---------------------------------------------------------
             # Calculate the shoulder plane angle for the current frame.
             # ---------------------------------------------------------
-            shld_plane_angle = dtl_shoulder_rotation_depth( addr_frame, frame, forward_bend )
+            shld_plane_angle = dtl_shoulder_rotation_depth( frame, frame, forward_bend )
             shld_plane_angle = shld_plane_angle if shld_plane_angle is not None else 0.0
 
             # ---------------------------------------------------------
@@ -537,22 +572,4 @@ class MetricsCalculator:
 #                                 EXECUTION 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    
-    # -------------------------------------------------------------
-    # Extract the pose data from the processed footage.
-    # -------------------------------------------------------------
-    pose_estimator = PoseEstimation(
-        face_on_path = "H:\\GIT\\swing.coach\\test_swings\\j_fo_4.MOV",
-        down_the_line_path = "H:\\GIT\\swing.coach\\test_swings\\j_dtl_4.MOV",
-        temp_dir_path = "H:\\GIT\\swing.coach\\test_swings"
-    )
-
-    # -------------------------------------------------------------
-    # Perform metrics calculations based on the extracted pose data.
-    # -------------------------------------------------------------
-    metrics_calculator = MetricsCalculator(
-        face_on_data = pose_estimator.face_on_data,
-        down_the_line_data = pose_estimator.down_the_line_data
-    )
-
-    print( metrics_calculator.metrics )
+    pass
